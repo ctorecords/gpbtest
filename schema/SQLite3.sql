@@ -1,0 +1,50 @@
+-- Основная таблица адресов
+CREATE TABLE IF NOT EXISTS message_address (
+    id SERIAL PRIMARY KEY,
+    created TIMESTAMP(0) NOT NULL,
+    address VARCHAR NOT NULL UNIQUE,
+    status VARCHAR CHECK (status IN ('unknown','bounced')) DEFAULT 'unknown'
+);
+
+-- Причины bounce
+CREATE TABLE IF NOT EXISTS bounce_reasons (
+    id SERIAL PRIMARY KEY,
+    status_code VARCHAR,
+    bounce_type  VARCHAR CHECK (bounce_type IN ('hard', 'soft', 'unknown')),
+    reason TEXT,
+    UNIQUE (status_code, reason)
+);
+
+-- Bounce-события
+CREATE TABLE IF NOT EXISTS message_bounce (
+    created TIMESTAMP(0) NOT NULL,
+    int_id CHAR(16) NOT NULL,
+    address_id INTEGER REFERENCES message_address(id),
+    reason_id INTEGER REFERENCES bounce_reasons(id),
+    str TEXT
+);
+
+CREATE INDEX IF NOT EXISTS message_bounce_created_idx ON message_bounce (created);
+CREATE INDEX IF NOT EXISTS message_bounce_reason_idx ON message_bounce (reason_id);
+
+-- Основные сообщения (<=)
+CREATE TABLE IF NOT EXISTS message (
+    created TIMESTAMP(0) NOT NULL,
+    id VARCHAR NOT NULL,
+    int_id CHAR(16) NOT NULL,
+    str VARCHAR NOT NULL,
+    status BOOL,
+    CONSTRAINT message_id_pk PRIMARY KEY(id)
+);
+CREATE INDEX IF NOT EXISTS message_created_idx ON message (created);
+CREATE INDEX IF NOT EXISTS message_int_id_idx ON message (int_id);
+
+-- Прочие лог-события
+CREATE TABLE IF NOT EXISTS log (
+    created TIMESTAMP(0) NOT NULL,
+    int_id CHAR(16) NOT NULL,
+    str VARCHAR,
+    address_id INTEGER REFERENCES message_address(id)
+);
+CREATE INDEX IF NOT EXISTS log_address_idx ON log (address_id);
+
