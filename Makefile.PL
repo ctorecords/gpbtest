@@ -4,7 +4,7 @@ use lib::abs 'lib';
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
-    NAME         => 'GPBEximp',
+    NAME         => 'GPBExim',
     VERSION      => '0.01',
     LIBS         => [''],
     INC          => '',
@@ -13,6 +13,8 @@ WriteMakefile(
         'DBD::SQLite'=> 0,
         'Test::More'            => 0,
         'lib::abs'              => 0,
+        'uni::perl'             => 0,
+        'Try::Tiny'             => 0,
     },
     test => { TESTS => 't/*.t' },
 );

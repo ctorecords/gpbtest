@@ -1,6 +1,6 @@
 -- Основная таблица адресов
 CREATE TABLE IF NOT EXISTS message_address (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     created TIMESTAMP(0) NOT NULL,
     address VARCHAR NOT NULL UNIQUE,
     status VARCHAR CHECK (status IN ('unknown','bounced')) DEFAULT 'unknown'
@@ -34,8 +34,10 @@ CREATE TABLE IF NOT EXISTS message (
     int_id CHAR(16) NOT NULL,
     str VARCHAR NOT NULL,
     status BOOL,
+    address_id INTEGER REFERENCES message_address(id),
     CONSTRAINT message_id_pk PRIMARY KEY(id)
 );
+CREATE INDEX IF NOT EXISTS message_address_idx ON message (address_id);
 CREATE INDEX IF NOT EXISTS message_created_idx ON message (created);
 CREATE INDEX IF NOT EXISTS message_int_id_idx ON message (int_id);
 

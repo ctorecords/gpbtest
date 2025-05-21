@@ -9,4 +9,5 @@ sub new {
     return DBI->connect(qq{dbi:SQLite:dbname=:memory:}, "", "", { RaiseError => 1 });
 }
 
+
 1;

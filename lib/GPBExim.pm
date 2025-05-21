@@ -3,6 +3,7 @@ package GPBExim;
 use strict;
 use warnings; 
 use lib::abs '../lib';
+use uni::perl;
 
 sub db_connect {
     my $db_type = shift;
@@ -22,7 +23,8 @@ sub db_connect {
 
 sub setup_schema {
     my $dbh = shift;
-    my $sql = do { local(@ARGV, $/) = 'schema/SQLite3.sql'; <> };
+    my $sql = do { local(@ARGV, $/) = 'schema/SQLite3.sql'; <> }; # подгрузим sql
+    $sql =~ s/--.+//g; # исключим комментарии
     $dbh->do($_) for split /;/, $sql;
 }
 
