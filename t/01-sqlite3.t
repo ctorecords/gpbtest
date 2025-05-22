@@ -9,10 +9,6 @@ use Try::Tiny;
 my $dbh; # = GPBExim::db_connect('SQLite3::Memory');
 #GPBExim::setup_schema($dbh);
 
-
-
-
-
 sub  open_log { if (open(my $fh, "<$_[0]")) { return $fh } else { die "Не могу открыть файл '$_[0]' $!" } }
 sub close_log { close $_[0] }
 
@@ -92,46 +88,16 @@ sub parse_chunk {
     my $chunk = shift;
     my %args = @_;
 
-    my $sth = {
-        insert_message    => $dbh->prepare_cached(qq{
-            insert into message (id, created, int_id, str, address_id)
-                values(?, ?, ?, ?, ?)
-        }),
-        insert_message_bounce    => $dbh->prepare_cached(qq{
-            insert into message_bounce (created, int_id, address_id, reason_id, str)
-                values(?, ?, ?, ?, ?)
-        }),
-        get_message_by_id => $dbh->prepare_cached(qq{ select id, created, int_id, str from message where id=? }),
-        get_message_by_int_id => $dbh->prepare_cached(qq{
-            select
-                created,
-                int_id,
-                str
-            from
-                message where int_id=?
-        }),
+    my %_sth = (
+        insert_log            => qq{ insert into log (created, int_id, str, address_id) values(?, ?, ?, ?) },
+        insert_message        => qq{ insert into message (id, created, int_id, str, address_id) values(?, ?, ?, ?, ?) },
+        insert_message_bounce => qq{ insert into message_bounce (created, int_id, address_id, reason_id, str) values(?, ?, ?, ?, ?) },
+        insert_address        => qq{ insert into message_address (created, address, status) values(?, ?, ?) },
 
-        get_log => $dbh->prepare_cached(qq{
-            select
-                log.created,
-                log.int_id,
-                log.str,
-                log.address_id,
-                message_address.address
-            from log
-            left join message_address on log.address_id=message_address.id
-            where  log.int_id=? and log.created=?
-        }),
-        get_log_by_int_id => $dbh->prepare_cached(qq{
-            select
-                log.created,
-                log.int_id,
-                log.str,
-                log.address_id
-            from log
-            where  log.int_id=?
-        }),
-        get_message_and_log_by_int_id => $dbh->prepare_cached(qq{
+        get_message_by_id     => qq{ select id, created, int_id, str from message where id=? },
+        get_address_by_email  => qq{ select id, created, address, status from message_address where address=? },
+
+        get_message_and_log_by_int_id => qq{
             select
                 created as created,
                 address_id as address_id,
@@ -149,8 +115,8 @@ sub parse_chunk {
             where  int_id=?
 
             order by created desc, str desc
-        }),
-        get_log_by_all => $dbh->prepare_cached(qq{
+        },
+        get_log_by_all => qq{
             select
                 log.created,
                 log.int_id,
@@ -158,21 +124,10 @@ sub parse_chunk {
                 log.address_id
             from log
             where  log.int_id=? and created=? and str=? and address_id=?
-        }),
+        },
 
-        get_address_by_email => $dbh->prepare_cached(qq{
-            select
-                id, created, address, status
-            from
-                message_address
-            where
-                address=?
-        }),
-        insert_address => $dbh->prepare_cached(qq{ insert into message_address (created, address, status) values(?, ?, ?) }),
-        insert_log => $dbh->prepare_cached(qq{ insert into log (created, int_id, str, address_id) values(?, ?, ?, ?) }),
-        update_log_set_address => $dbh->prepare_cached(qq{ update log set address_id=? where created=? and int_id=?}),
-
-    };
+    );
+    my $sth={ map { $_ => $dbh->prepare_cached($_sth{$_}) } keys %_sth };
 
 
 
@@ -242,7 +197,7 @@ sub parse_chunk {
             else {
                 $sth->{get_log_by_all}->execute($int_id, $datetime, $stripped_line, $address_id)
                     or die $sth->{get_log_by_all}->errstr;
-                my $log = $sth->{get_log}->fetchall_arrayref({});
+                my $log = $sth->{get_log_by_all}->fetchall_arrayref({});
                 if (!@$log) {
                     $sth->{insert_log}->execute($datetime, $int_id, $stripped_line, $address_id)
                         or die $sth->{insert_log}->errstr;
