@@ -1,13 +1,16 @@
 package GPBExim::Model::SQLite3::Memory;
 
 use lib::abs '../../../../lib';
-use DBI;
+use uni::perl;
+use parent 'GPBExim::Model::SQLite3';
 
-sub new {
-    my $pkg = shift;
+sub init {
+    my $self = shift;
+    
+    $self->SUPER::init(@_);
 
-    return DBI->connect(qq{dbi:SQLite:dbname=:memory:}, "", "", { RaiseError => 1 });
 }
+
 
 
 1;

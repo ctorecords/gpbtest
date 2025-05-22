@@ -15,6 +15,7 @@ WriteMakefile(
         'lib::abs'              => 0,
         'uni::perl'             => 0,
         'Try::Tiny'             => 0,
+        'Template'      => 0, 
     },
     test => { TESTS => 't/*.t' },
 );

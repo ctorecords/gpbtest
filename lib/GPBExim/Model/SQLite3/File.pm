@@ -1,14 +1,17 @@
 package GPBExim::Model::SQLite3::File;
 
 use lib::abs '../../../../lib';
-use DBI;
+use uni::perl;
+use parent 'GPBExim::Model::SQLite3';
 
-our $DBFILE = lib::abs::path('../../../../temp/sqlite3.db');
+sub init {
+    my $self = shift;
 
-sub new {
-    my $pkg = shift;
+    $self->SUPER::init(@_);
 
-    return DBI->connect(qq{dbi:SQLite:dbname=$DBFILE}, "", "", { RaiseError => 1 });
+    $self->{dbfile} = lib::abs::path('../../../../temp/sqlite3.db');
+    $self->{schemafile} //= lib::abs::path('../../../schema/SQLite3.sql');
 }
+
 
 1;

@@ -5,7 +5,7 @@ use warnings;
 use lib::abs '../lib';
 use uni::perl;
 
-sub db_connect {
+sub get_model {
     my $db_type = shift;
 
     # фабрика для модели
