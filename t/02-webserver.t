@@ -27,15 +27,18 @@ $controller->parse_chunk($model => join(' ',
 );
 
 my $view = GPBExim::View->new(model => $model);
-my $r = HTTP::Request->new(GET => '/');
-is_deeply($view->handle_request($r), {
-  data => {
-    message_address => 2,
-    bounce_reasons => 0,
-    message => 0,
-    log => 3,
-    message_bounce => 1
-  }
-}, 'Sample view test');
+    is_deeply(
+        $view->handle_request(HTTP::Request->new(GET => '/')
+    ),
+    {
+    data => {
+        message_address => 2,
+        bounce_reasons => 0,
+        message => 0,
+        log => 3,
+        message_bounce => 1
+    }
+    },
+'Sample view test');
 done_testing;
 

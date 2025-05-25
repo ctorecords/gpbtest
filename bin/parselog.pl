@@ -19,7 +19,8 @@ if (my $LOG_FH = $controller->open_log(lib::abs::path('../temp/maillog'))) {
         my $chunk = $controller->get_next_chunk_from_log($LOG_FH)
             or last CHUNKS;
         $model->txn(sub {
-            $controller->parse_chunk($model => $chunk);
+            my %args = @_;
+            $controller->parse_chunk($model => $chunk, @_);
         });
     };
 

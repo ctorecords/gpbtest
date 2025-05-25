@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS message_bounce (
     int_id CHAR(16) NOT NULL,
     address_id INTEGER REFERENCES message_address(id),
     reason_id INTEGER REFERENCES bounce_reasons(id),
+    o_id CHAR(16) NOT NULL,
     str TEXT
 );
 
@@ -35,6 +36,7 @@ CREATE TABLE IF NOT EXISTS message (
     str VARCHAR NOT NULL,
     status BOOL,
     address_id INTEGER REFERENCES message_address(id),
+    o_id CHAR(16) NOT NULL,
     CONSTRAINT message_id_pk PRIMARY KEY(id)
 );
 CREATE INDEX IF NOT EXISTS message_address_idx ON message (address_id);
@@ -46,7 +48,17 @@ CREATE TABLE IF NOT EXISTS log (
     created TIMESTAMP(0) NOT NULL,
     int_id CHAR(16) NOT NULL,
     str VARCHAR,
-    address_id INTEGER REFERENCES message_address(id)
+    address_id INTEGER REFERENCES message_address(id),
+    o_id CHAR(16) NOT NULL
 );
 CREATE INDEX IF NOT EXISTS log_address_idx ON log (address_id);
 
+-- специальная таблица для переменных
+-- первая и пока единственная переменная - 
+-- сквозной счётчик появления записей в таблицах message, message_bounce, log
+CREATE TABLE IF NOT EXISTS vars (
+    n CHAR(16) NOT NULL,
+    v int_id CHAR(16) NOT NULL,
+    CONSTRAINT vars_n_pk PRIMARY KEY(n)
+);
+insert into vars (n, v) values ('o_id', '0');
