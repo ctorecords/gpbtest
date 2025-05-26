@@ -5,6 +5,8 @@ use uni::perl ':dumper';
 use Try::Tiny;
 
 use DBI;
+use Search::Xapian;
+use File::Path qw(remove_tree);
 
 our $DBFILE;
 our $SCHEMAFILE;
@@ -19,7 +21,18 @@ sub new {
     return $self;
 }
 
-sub init { }
+sub init { 
+    my $self = shift;
+
+    my $default_xapian_dir = lib::abs::path('../../temp/xapian');
+    $self->{xapian_dir} = $default_xapian_dir;
+    $self->{xapian_db}  = Search::Xapian::WritableDatabase->new(
+        $self->{xapian_dir}, 
+        Search::Xapian::DB_CREATE_OR_OPEN
+    );
+
+
+}
 
 sub setup_schema {
     my $self = shift;
@@ -68,5 +81,61 @@ sub get_next_o_id {
     return $self->{o_id};
 }
 
+sub _add_xapian_ngrams {
+    my $self = shift;
+    my ($min, $max)  = (3, 5);
 
+    my ($doc, $text, $prefix) = @_;
+    $max = my $length = length($text);
+    for my $n ($min .. $max) {
+        for my $i (0 .. $length - $n) {
+            my $ngram = substr($text, $i, $n);
+            $doc->add_term($prefix . $ngram);
+        }
+    }
+}
+
+sub index_address_at_xapian {
+    my $self = shift;
+    my ($email, $id) = @_;
+
+    return if defined $self->{indexed_xapian_email}{$id};
+    my $doc = Search::Xapian::Document->new;
+    $self->_add_xapian_ngrams($doc, $email, 'N');
+    $doc->set_data($id);
+    $self->{xapian_db}->add_document($doc);
+
+    $self->{indexed_xapian_email}{$id} = $email;
+}
+
+sub search_by_email_substring {
+    my $self      = shift;
+    my $substring = shift;
+    croak "substring is required" unless defined $substring;
+
+    my $query = Search::Xapian::Query->new("N$substring");
+    my $enquire = Search::Xapian::Enquire->new($self->{xapian_db});
+    $enquire->set_query($query);
+
+    my $mset = $enquire->get_mset(0, 100);
+    my @results;
+
+    for my $match ($mset->items) {
+        my $id = $match->get_document->get_data;
+        push @results, $id;
+    }
+
+    return \@results;
+}
+
+sub DESTROY {
+    my $self = shift;
+    if ($self->{rm_xapian_db_on_destroy} and $self->{xapian_dir} and -d $self->{xapian_dir}) {
+        delete $self->{xapian_db};
+        remove_tree($self->{xapian_dir}, { error => \my $err });
+        if (@$err) {
+            warn "Failed to remove Xapian index at $self->{xapian_dir}: @$err\n";
+        }
+    };
+}
 1;

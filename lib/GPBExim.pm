@@ -7,6 +7,7 @@ use uni::perl;
 
 sub get_model {
     my $db_type = shift;
+    my %args = @_;
 
     # фабрика для модели
     $db_type =~ /^[A-Za-z0-9_\:]+$/ or die "Недопустимое имя модуля: $db_type";
@@ -18,7 +19,7 @@ sub get_model {
         1;
     } or die "Ошибка загрузки модуля $db_module: $@";
 
-    return $db_module->new();
+    return $db_module->new(%args);
 }
 
 sub setup_schema {

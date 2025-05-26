@@ -91,7 +91,11 @@ undef $controller;
 ###########################################
 # Простая группа строк с bounce
 
-undef $model, $controller; $model = GPBExim::get_model('SQLite3::Memory'); $model->setup_schema();
+undef $model, $controller;
+
+$model = GPBExim::get_model('SQLite3::Memory', rm_xapian_db_on_destroy=>1);
+$model->setup_schema();
+
 $controller = GPBExim::Controller->new();
 
 $controller->parse_chunk($model => join(' ',
@@ -143,11 +147,21 @@ is_deeply(
     },
     '4 lines'
 );
+
+my $message_address = $model->{dbh}->selectall_arrayref("select id, created, address, status from message_address", { Slice => {} });
+my %xemails = map { $_->{address} => { orig => [$_->{id}], found=> $model->search_by_email_substring($_->{address}) } } @$message_address;
+is_deeply($xemails{$_}{orig}, $xemails{$_}{found}, qq{Check xapian index for "$_"})
+    for (keys %xemails);
+
 undef $model, $controller;
 
 ###########################################
 # Простая группа строк с успешной отправкой
-undef $model, $controller; $model = GPBExim::get_model('SQLite3::Memory'); $model->setup_schema();
+undef $model, $controller;
+
+$model = GPBExim::get_model('SQLite3::Memory', rm_xapian_db_on_destroy=>1);
+$model->setup_schema();
+
 $controller = GPBExim::Controller->new();
 
 $controller->parse_chunk($model => join("\n",
@@ -191,5 +205,12 @@ is_deeply(
     },
     'Простая группа строк с успешной отправкой'
 );
+
+my $message_address = $model->{dbh}->selectall_arrayref("select id, created, address, status from message_address", { Slice => {} });
+my %xemails = map { $_->{address} => { orig => [$_->{id}], found=> $model->search_by_email_substring($_->{address}) } } @$message_address;
+is_deeply($xemails{$_}{orig}, $xemails{$_}{found}, qq{Check xapian index for "$_"})
+    for (keys %xemails);
+
+
 undef $model;
 done_testing;
