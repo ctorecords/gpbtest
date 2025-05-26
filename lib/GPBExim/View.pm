@@ -40,9 +40,6 @@ sub handle_request {
     } elsif ($method eq 'POST' && $path eq "/search") {
         $tt_template_path = lib::abs::path('../../templates/searcg.tt2');
 
-        my @pair = (
-            my ($int_id, $created) = ('1RookS-000Pg8-VO', '2012-02-13 14:39:22')
-        );
         my $json_text = $r->content;
         my $rdata = eval { decode_json($json_text) };
         if ($@ || !$rdata->{s}) {
@@ -56,24 +53,17 @@ sub handle_request {
 
         # когда email-ы не найдены
         # это поведение надо отработать отдельно
-        if (!@$ids) {
-            retrurn HTTP::Response->new(HTTP_NOT_FOUND, "Emails not found")
-        }
-        my $placeholders = join(', ', map { '?' } @$ids);
-        my $search_result = $self->{model}{dbh}->selectall_arrayref(qq{
-                select
-                    created as created,
-                    str as str,
-                    int_id, o_id
-                from log
-                where
-                    address_id in ($placeholders)
-                    and created=?
-            }, 
-            { Slice => {} }, 
-            @$ids, $datetime
-        );
-        $return = { data => $search_result };
+        !@$ids and return HTTP::Response->new(HTTP_NOT_FOUND, "Emails not found");
+
+        my @tables = qw/log message message_bounce/;
+        $return = { data => $self->{model}{dbh}->selectall_arrayref(
+            join (' union ',
+                map { qq{
+                    select created, str, int_id, o_id, '$_' as t
+                    from $_ where address_id in (@{[ join(', ', map { '?' } @$ids) ]}) and created=?
+                } } @tables 
+            ). ' order by created, o_id', 
+            { Slice => {} },  map { @$ids, $datetime } @tables ) };
 
     } elsif ($method eq 'POST' && $path eq "/submit") {
         $return = {data => {} };
