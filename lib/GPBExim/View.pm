@@ -10,6 +10,8 @@ use lib::abs '../../lib';
 use GPBExim;
 use Template;
 use Encode;
+use HTTP::Status qw(:constants);
+use JSON::XS;
 
 sub handle_request {
     my $self = shift;
@@ -32,6 +34,47 @@ sub handle_request {
             map { $_ =>  $self->{model}{dbh}->selectall_arrayref("select count(*) as ".$_."_count from $_", { Slice => {} })->[0]{$_.'_count'} }
             qw/message message_address message_bounce bounce_reasons log/
         } };
+    } elsif ($method eq 'GET' && $path eq "/search") {
+        $tt_template_path = lib::abs::path('../../templates/searcg.tt2');
+
+    } elsif ($method eq 'POST' && $path eq "/search") {
+        $tt_template_path = lib::abs::path('../../templates/searcg.tt2');
+
+        my @pair = (
+            my ($int_id, $created) = ('1RookS-000Pg8-VO', '2012-02-13 14:39:22')
+        );
+        my $json_text = $r->content;
+        my $rdata = eval { decode_json($json_text) };
+        if ($@ || !$rdata->{s}) {
+            retrurn HTTP::Response->new(HTTP_BAD_REQUEST, "Invalid JSON")
+        }
+        my ($datetime, $email) = $rdata->{s} =~ /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (\S+)/;
+        if (!$email or !$datetime) {
+            retrurn HTTP::Response->new(HTTP_BAD_REQUEST, "Invalid request - nothing to search")
+        }
+        my $ids = $self->{model}->search_by_email_substring($email);
+
+        # когда email-ы не найдены
+        # это поведение надо отработать отдельно
+        if (!@$ids) {
+            retrurn HTTP::Response->new(HTTP_NOT_FOUND, "Emails not found")
+        }
+        my $placeholders = join(', ', map { '?' } @$ids);
+        my $search_result = $self->{model}{dbh}->selectall_arrayref(qq{
+                select
+                    created as created,
+                    str as str,
+                    int_id, o_id
+                from log
+                where
+                    address_id in ($placeholders)
+                    and created=?
+            }, 
+            { Slice => {} }, 
+            @$ids, $datetime
+        );
+        $return = { data => $search_result };
+
     } elsif ($method eq 'POST' && $path eq "/submit") {
         $return = {data => {} };
         $tt_template = "Received POST data: $content";

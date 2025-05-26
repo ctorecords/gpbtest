@@ -17,6 +17,7 @@ WriteMakefile(
         'Try::Tiny'             => 0,
         'Template'              => 0, 
         'Search::Xapian'        => 0, # не забыть "apt-get install libxapian-dev"
+        'HTTP::Status'          => 0,
     },
     test => { TESTS => 't/*.t' },
 );

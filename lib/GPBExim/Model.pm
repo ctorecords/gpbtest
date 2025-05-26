@@ -118,14 +118,14 @@ sub search_by_email_substring {
     $enquire->set_query($query);
 
     my $mset = $enquire->get_mset(0, 100);
-    my @results;
+    my %results;
 
     for my $match ($mset->items) {
         my $id = $match->get_document->get_data;
-        push @results, $id;
+        $results{$id}=1;
     }
 
-    return \@results;
+    return [keys %results];
 }
 
 sub DESTROY {

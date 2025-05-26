@@ -1,0 +1,12 @@
+<html>
+    <head></head>
+    <body>
+        <h1>Поиск по timestamp и int_id</h1>
+
+        <form action="/search">
+            <input type="text" name="s">
+            <input type="submit">
+        </form>
+
+    </body>
+</html>
