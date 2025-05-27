@@ -8,6 +8,7 @@ sub init {
     my $self = shift;
     
     $self->SUPER::init(@_);
+    return $self;
 
 }
 

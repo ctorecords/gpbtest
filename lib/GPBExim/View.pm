@@ -1,17 +1,16 @@
 package GPBExim::View;
 
-use strict;
-use warnings;
 use HTTP::Daemon;
 use HTTP::Response;
 use HTTP::Status;
 use uni::perl ':dumper';
-use lib::abs '../../lib';
-use GPBExim;
 use Template;
 use Encode;
 use HTTP::Status qw(:constants);
 use JSON::XS;
+
+use lib::abs '../../lib';
+use GPBExim;
 
 sub handle_request {
     my $self = shift;
@@ -45,8 +44,8 @@ sub handle_request {
         if ($@ || !$rdata->{s}) {
             retrurn HTTP::Response->new(HTTP_BAD_REQUEST, "Invalid JSON")
         }
-        my ($datetime, $email) = $rdata->{s} =~ /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (\S+)/;
-        if (!$email or !$datetime) {
+        my $email = $rdata->{s};
+        if (!$email) {
             retrurn HTTP::Response->new(HTTP_BAD_REQUEST, "Invalid request - nothing to search")
         }
         my $ids = $self->{model}->search_by_email_substring($email);
@@ -55,15 +54,8 @@ sub handle_request {
         # это поведение надо отработать отдельно
         !@$ids and return HTTP::Response->new(HTTP_NOT_FOUND, "Emails not found");
 
-        my @tables = qw/log message message_bounce/;
-        $return = { data => $self->{model}{dbh}->selectall_arrayref(
-            join (' union ',
-                map { qq{
-                    select created, str, int_id, o_id, '$_' as t
-                    from $_ where address_id in (@{[ join(', ', map { '?' } @$ids) ]}) and created=?
-                } } @tables 
-            ). ' order by created, o_id', 
-            { Slice => {} },  map { @$ids, $datetime } @tables ) };
+        my @tables = qw/log message/;
+        $return = { data => $self->{model}->get_rows_on_address_id(\@tables, $ids, debug => 1) };
 
     } elsif ($method eq 'POST' && $path eq "/submit") {
         $return = {data => {} };

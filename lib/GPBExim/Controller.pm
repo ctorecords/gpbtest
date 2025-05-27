@@ -42,6 +42,31 @@ sub DESTROY {
     $_->finish() for (values %{$self->{sth}});
 }
 
+sub parse_logfile {
+    my $self      = shift;
+    my $file_path = shift;
+    my $model     = shift;
+
+    my %args = ( @_ );
+
+    if (my $LOG_FH = $self->open_log($file_path)) {
+        my $chunk_counter = 0;
+
+        # читаем лог чанками
+        CHUNKS: while (!eof($LOG_FH) and ++$chunk_counter<$self->{max_chunks} ) {
+            # ... и внутри чанка транзакциями обновляем БД
+            my $chunk = $self->get_next_chunk_from_log($LOG_FH)
+                or last CHUNKS;
+            $model->txn(sub {
+                my %args = @_;
+                $self->parse_chunk($model => $chunk, @_);
+            });
+        };
+
+        $self->close_log($LOG_FH);
+    }
+}
+
 sub parse_chunk {
     my $self = shift; 
     my $model = shift;

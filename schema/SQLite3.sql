@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS log (
     int_id CHAR(16) NOT NULL,
     str VARCHAR,
     address_id INTEGER REFERENCES message_address(id),
-    o_id CHAR(16) NOT NULL
+    o_id int NOT NULL
 );
 CREATE INDEX IF NOT EXISTS log_address_idx ON log (address_id);
 
@@ -61,4 +61,4 @@ CREATE TABLE IF NOT EXISTS vars (
     v int_id CHAR(16) NOT NULL,
     CONSTRAINT vars_n_pk PRIMARY KEY(n)
 );
-insert into vars (n, v) values ('o_id', '0');
+insert into vars (n, v) values ('o_id', '$OIDSTART');

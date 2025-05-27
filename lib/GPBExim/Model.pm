@@ -24,13 +24,23 @@ sub new {
 sub init { 
     my $self = shift;
 
+    if ($self->{rm_xapian_db_on_init} and $self->{xapian_dir} and -d $self->{xapian_dir}) {
+        delete $self->{xapian_db};
+        remove_tree($self->{xapian_dir}, { error => \my $err });
+        if (@$err) {
+            warn "Failed to remove Xapian index at $self->{xapian_dir}: @$err\n";
+        }
+    };
+
     my $default_xapian_dir = lib::abs::path('../../temp/xapian');
+    $self->{oidstart} = 0;
     $self->{xapian_dir} = $default_xapian_dir;
     $self->{xapian_db}  = Search::Xapian::WritableDatabase->new(
         $self->{xapian_dir}, 
         Search::Xapian::DB_CREATE_OR_OPEN
     );
-
+    $self->{xapian_max_search_result} = 100_000_000;
+    return $self;
 
 }
 
@@ -39,7 +49,11 @@ sub setup_schema {
 
     my $sql = do { local(@ARGV, $/) = $self->{schemafile}; <> }; # подгрузим sql
     $sql =~ s/--.+//g; # исключим комментарии
+    $sql =~ s/\$OIDSTART/$self->{oidstart}/g; # подменим константу
+    #print $sql, $/ x 2;
     $self->{dbh}->do($_) for split /;/, $sql;
+
+    return $self;
 }
 
 sub setup_dbh {}
@@ -68,22 +82,42 @@ sub get_o_id {
         $self->{sth}{get_next_o_id}->execute;
         $self->{o_id} = $self->{sth}{get_next_o_id}->fetchrow_array;
     }
-    return $self->{o_id};
+    return int($self->{o_id});
 }
 
 sub get_next_o_id {
     my $self = shift;
 
     $self->{o_id} //= $self->get_o_id();
-    $self->{o_id}++;
+    $self->{o_id}=int($self->{o_id})+1;
     $self->{sth}{set_next_o_id}->execute($self->{o_id});
     $self->{sth}{set_next_o_id}->finish;
     return $self->{o_id};
 }
 
+sub get_rows_on_address_id {
+    my $self     = shift;
+    my $tables   = shift;
+    my $ids      = shift;
+    my %args     = @_;
+
+    my $return = $self->{dbh}->selectall_arrayref(
+            join (' union ',
+                map { qq{
+                    select created, str, int_id, o_id, '$_' as t
+                    from $_ where address_id in (@{[ join(', ', map { '?' } @$ids) ]})
+                } } @$tables 
+            ). ' order by int_id, o_id', 
+            { Slice => {} },  map { @$ids } @$tables );
+
+    $args{debug} && 
+        warn dumper($return);
+    return $return;
+}
+
 sub _add_xapian_ngrams {
     my $self = shift;
-    my ($min, $max)  = (3, 5);
+    my ($min, $max)  = (1, 5);
 
     my ($doc, $text, $prefix) = @_;
     $max = my $length = length($text);
@@ -117,7 +151,7 @@ sub search_by_email_substring {
     my $enquire = Search::Xapian::Enquire->new($self->{xapian_db});
     $enquire->set_query($query);
 
-    my $mset = $enquire->get_mset(0, 100);
+    my $mset = $enquire->get_mset(0, $self->{xapian_max_search_result});
     my %results;
 
     for my $match ($mset->items) {
