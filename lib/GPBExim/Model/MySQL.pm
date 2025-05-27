@@ -1,3 +1,3 @@
-package GPBExim::SQLite3;
+package GPBExim::MySQL;
 
 1;
