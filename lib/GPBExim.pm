@@ -1,7 +1,7 @@
 package GPBExim;
 
 use strict;
-use warnings; 
+use warnings;
 use lib::abs '../lib';
 use uni::perl;
 
@@ -24,7 +24,8 @@ sub get_model {
 
 sub setup_schema {
     my $dbh = shift;
-    my $sql = do { local(@ARGV, $/) = 'schema/SQLite3.sql'; <> }; # подгрузим sql
+
+    my $sql = do { local(@ARGV, $/) = 'schema/SQLite3.sql'; <> };
     $sql =~ s/--.+//g; # исключим комментарии
     $dbh->do($_) for split /;/, $sql;
 }

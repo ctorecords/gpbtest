@@ -2,6 +2,7 @@ package GPBExim::Controller;
 use uni::perl ':dumper';
 use lib::abs;
 
+
 sub new {
     my $pkg = shift;
     my $self = bless {
@@ -14,11 +15,11 @@ sub new {
     return $self;
 }
 
-sub  open_log { my $self = shift; if (open(my $fh, "<$_[0]")) { return $fh } else { die "Не могу открыть файл '$_[0]' $!" } }
+sub  open_log { my $self = shift; if (open(my $fh, "<$_[0]")) { binmode($fh, ":raw"); return $fh } else { die "Не могу открыть файл '$_[0]' $!" } }
 sub close_log { my $self = shift; close $_[0] }
 
 sub parse_line {
-    my $self = shift; 
+    my $self = shift;
     my $line = shift;
 
     my ($datetime, $int_id, $flag, $email, $other) =
@@ -68,7 +69,7 @@ sub parse_logfile {
 }
 
 sub parse_chunk {
-    my $self = shift; 
+    my $self = shift;
     my $model = shift;
     my $chunk = shift;
     my %args = @_;
@@ -76,7 +77,7 @@ sub parse_chunk {
     my %_sth = (
         insert_log            => qq{ insert into log (created, int_id, str, address_id, o_id) values(?, ?, ?, ?, ?) },
         insert_message        => qq{ insert into message (id, created, int_id, str, address_id, o_id) values(?, ?, ?, ?, ?, ?) },
-        insert_message_bounce => qq{ insert into message_bounce (created, int_id, address_id, reason_id, str, o_id) values(?, ?, ?, ?, ?, ?) },
+        insert_message_bounce => qq{ insert into message_bounce (created, int_id, address_id, str, o_id) values(?, ?, ?, ?, ?) },
         insert_address        => qq{ insert into message_address (created, address, status) values(?, ?, ?) },
 
         get_message_by_id     => qq{ select id, created, int_id, str from message where id=? },
@@ -86,7 +87,7 @@ sub parse_chunk {
             select
                 created as created,
                 address_id as address_id,
-                str as str, 
+                str as str,
                 o_id
             from log
             where  int_id=?
@@ -96,7 +97,7 @@ sub parse_chunk {
             select
                 created as created,
                 address_id as address_id,
-                str as str, 
+                str as str,
                 o_id
             from message
             where  int_id=?
@@ -128,11 +129,11 @@ sub parse_chunk {
             # проверим, что email есть в таблице messaage_address и в кешируем хеше $self->{emails}
             my ($address_id);
             if ($email and !$self->{emails}{$email}) {
-                $self->{sth}{get_address_by_email}->execute($email)  
+                $self->{sth}{get_address_by_email}->execute($email)
                     or die $self->{sth}{get_address_by_email}->errstr;
                 my $address = $self->{sth}{get_address_by_email}->fetchrow_hashref();
                 if (!$address) {
-                    $self->{sth}{insert_address}->execute($datetime, $email, 'unknown')  
+                    $self->{sth}{insert_address}->execute($datetime, $email, 'unknown')
                         or die $self->{sth}{insert_address}->errstr;
                     $self->{emails}{$email}= $address_id = $model->{dbh}->last_insert_id;
                     $model->index_address_at_xapian($email => $address_id);
@@ -172,7 +173,7 @@ sub parse_chunk {
                     EMAILSEARCH: for my $row (@$rows) {
                         if ($row->{address_id}) {
                             $email_found_for_bounce = 1;
-                            $self->{sth}{insert_message_bounce}->execute($datetime, $int_id, $row->{address_id}, undef, $stripped_line, $model->get_next_o_id)
+                            $self->{sth}{insert_message_bounce}->execute($datetime, $int_id, $row->{address_id}, $stripped_line, $model->get_next_o_id)
                                 or die $self->{sth}{insert_message_bounce}->errstr;
                             last EMAILSEARCH;
                         }
@@ -180,7 +181,7 @@ sub parse_chunk {
                     # если email для bounce не определён, то кидаем его бед address_id на случай,
                     # когда в будущем в логе докинут данные по нему
                     if (!$email_found_for_bounce) {
-                        $self->{sth}{insert_message_bounce}->execute($datetime, $int_id, undef, undef, $stripped_line, $model->get_next_o_id)
+                        $self->{sth}{insert_message_bounce}->execute($datetime, $int_id, undef, $stripped_line, $model->get_next_o_id)
                             or die $self->{sth}{insert_message_bounce}->errstr;
                     }
                 }
@@ -197,8 +198,6 @@ sub parse_chunk {
             }
         }
     }
-
-
 }
 
 # читаем $self->{chunk_size} полных строк лога, оканчивающихся \n в файле,

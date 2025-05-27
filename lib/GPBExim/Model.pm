@@ -21,7 +21,7 @@ sub new {
     return $self;
 }
 
-sub init { 
+sub init {
     my $self = shift;
 
     if ($self->{rm_xapian_db_on_init} and $self->{xapian_dir} and -d $self->{xapian_dir}) {
@@ -36,7 +36,7 @@ sub init {
     $self->{oidstart} = 0;
     $self->{xapian_dir} = $default_xapian_dir;
     $self->{xapian_db}  = Search::Xapian::WritableDatabase->new(
-        $self->{xapian_dir}, 
+        $self->{xapian_dir},
         Search::Xapian::DB_CREATE_OR_OPEN
     );
     $self->{xapian_max_search_result} = 100_000_000;
@@ -106,18 +106,18 @@ sub get_rows_on_address_id {
                 map { qq{
                     select created, str, int_id, o_id, '$_' as t
                     from $_ where address_id in (@{[ join(', ', map { '?' } @$ids) ]})
-                } } @$tables 
-            ). ' order by int_id, o_id', 
+                } } @$tables
+            ). ' order by int_id, o_id',
             { Slice => {} },  map { @$ids } @$tables );
 
-    $args{debug} && 
+    $args{debug} &&
         warn dumper($return);
     return $return;
 }
 
 sub _add_xapian_ngrams {
     my $self = shift;
-    my ($min, $max)  = (1, 5);
+    my ($min, $max)  = (3, 5);
 
     my ($doc, $text, $prefix) = @_;
     $max = my $length = length($text);
@@ -172,4 +172,5 @@ sub DESTROY {
         }
     };
 }
+
 1;

@@ -10,15 +10,16 @@ use GPBExim::Controller;
 use GPBExim::View;
 use HTTP::Request;
 use JSON::XS;
+use Encode qw(encode);
 
 use Exporter 'import';
 our @EXPORT_OK = qw(
-    test_parse_line 
-    test_parse_chunk 
+    test_parse_line
+    test_parse_chunk
     test_parse_logfile
-    test_search 
+    test_search
     cq
-); 
+);
 
 sub test_parse_line {
     my $title = shift;
@@ -28,8 +29,7 @@ sub test_parse_line {
         @_
     );
 
-    is_deeply(GPBExim::Controller->new()->parse_line($line), $hash, $title );
-
+    is_deeply(GPBExim::Controller->new()->parse_line($line), $hash, encode('UTF-8', $title) );
 }
 
 sub test_parse_chunk {
@@ -44,7 +44,7 @@ sub test_parse_chunk {
     );
 
 
-    my $m = GPBExim::get_model($args{model_type}, 
+    my $m = GPBExim::get_model($args{model_type},
         rm_xapian_db_on_destroy => $args{rm_xapian_db_on_destroy},
         rm_xapian_db_on_init    => $args{rm_xapian_db_on_init},
     )->setup_schema();
@@ -55,7 +55,7 @@ sub test_parse_chunk {
 
     my $message_address = $m->{dbh}->selectall_arrayref("select id, created, address, status from message_address", { Slice => {} });
     my %xemails = map { $_->{address} => { orig => [$_->{id}], found=> $m->search_by_email_substring($_->{address}) } } @$message_address;
-    is_deeply($xemails{$_}{orig}, $xemails{$_}{found}, qq{Check xapian index for "$_" ($title)})
+    is_deeply($xemails{$_}{orig}, $xemails{$_}{found}, encode('UTF-8', qq{Check xapian index for "$_" ($title)}))
         for (keys %xemails);
 
     # перечень таблиц для сравнения
@@ -63,7 +63,6 @@ sub test_parse_chunk {
         message
         message_address
         message_bounce
-        bounce_reasons
         log
     /;
     my @not_exists_tables = grep {!defined $hash->{$_}} @tables;
@@ -71,15 +70,14 @@ sub test_parse_chunk {
         {
             message         => $m->{dbh}->selectall_arrayref("select id, created, int_id, str, status, address_id, o_id from message order by o_id", { Slice => {} }),
             message_address => $message_address,
-            message_bounce  => $m->{dbh}->selectall_arrayref("select created, int_id, address_id, reason_id, o_id, str from message_bounce order by o_id", { Slice => {} }),
-            bounce_reasons  => $m->{dbh}->selectall_arrayref("select id, status_code, bounce_type, reason from bounce_reasons", { Slice => {} }),
+            message_bounce  => $m->{dbh}->selectall_arrayref("select created, int_id, address_id, o_id, str from message_bounce order by o_id", { Slice => {} }),
             log             => $m->{dbh}->selectall_arrayref("select created, int_id, str, address_id, o_id from log order by o_id", { Slice => {} }),
         },
         {
-            %$hash, 
+            %$hash,
             map { $_ => [] } @not_exists_tables  # если во входящем хеше таблица опущена, считаем, что данные по ней должны прийти пустыми
         },
-        $title
+        encode('UTF-8', $title)
     );
 
 }
@@ -108,7 +106,7 @@ sub test_parse_logfile {
 
     for my $s (keys %$search_expected) {
         my $got = $v->handle_request(cq($s));
-        is_deeply($got, $search_expected->{$s}, "$title: $s");
+        is_deeply($got, $search_expected->{$s}, encode('UTF-8', "$title: $s"));
     }
 }
 
@@ -137,7 +135,7 @@ sub test_search {
     is_deeply(
         $got,
         $expected,
-        $title,
+        encode('UTF-8', $title),
     );
 }
 

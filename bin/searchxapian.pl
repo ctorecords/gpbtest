@@ -5,7 +5,7 @@ use lib::abs '../lib';
 use GPBExim;
 use Search::Xapian;
 
-my $m = GPBExim::get_model('SQLite3::File'); 
+my $m = GPBExim::get_model('SQLite3::File');
 
 my ($dir, $substr) = @ARGV;
 die "Usage: $0 /path/to/xapian index_substring\n" unless $dir && $substr;

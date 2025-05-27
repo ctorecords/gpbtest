@@ -6,27 +6,15 @@ CREATE TABLE IF NOT EXISTS message_address (
     status VARCHAR CHECK (status IN ('unknown','bounced')) DEFAULT 'unknown'
 );
 
--- Причины bounce
-CREATE TABLE IF NOT EXISTS bounce_reasons (
-    id SERIAL PRIMARY KEY,
-    status_code VARCHAR,
-    bounce_type  VARCHAR CHECK (bounce_type IN ('hard', 'soft', 'unknown')),
-    reason TEXT,
-    UNIQUE (status_code, reason)
-);
-
 -- Bounce-события
 CREATE TABLE IF NOT EXISTS message_bounce (
     created TIMESTAMP(0) NOT NULL,
     int_id CHAR(16) NOT NULL,
     address_id INTEGER REFERENCES message_address(id),
-    reason_id INTEGER REFERENCES bounce_reasons(id),
     o_id CHAR(16) NOT NULL,
     str TEXT
 );
-
 CREATE INDEX IF NOT EXISTS message_bounce_created_idx ON message_bounce (created);
-CREATE INDEX IF NOT EXISTS message_bounce_reason_idx ON message_bounce (reason_id);
 
 -- Основные сообщения (<=)
 CREATE TABLE IF NOT EXISTS message (

@@ -31,7 +31,7 @@ sub handle_request {
         $tt_template_path = lib::abs::path('../../templates/start.tt2');
         $return = { data => {
             map { $_ =>  $self->{model}{dbh}->selectall_arrayref("select count(*) as ".$_."_count from $_", { Slice => {} })->[0]{$_.'_count'} }
-            qw/message message_address message_bounce bounce_reasons log/
+            qw/message message_address message_bounce log/
         } };
     } elsif ($method eq 'GET' && $path eq "/search") {
         $tt_template_path = lib::abs::path('../../templates/searcg.tt2');
@@ -55,7 +55,7 @@ sub handle_request {
         !@$ids and return HTTP::Response->new(HTTP_NOT_FOUND, "Emails not found");
 
         my @tables = qw/log message/;
-        $return = { data => $self->{model}->get_rows_on_address_id(\@tables, $ids, debug => 1) };
+        $return = { data => $self->{model}->get_rows_on_address_id(\@tables, $ids) };
 
     } elsif ($method eq 'POST' && $path eq "/submit") {
         $return = {data => {} };
@@ -67,7 +67,7 @@ sub handle_request {
     # рендер через Template::Toolkit
     if ($args{render} eq 'TT') {
         my $body = '';
-        $tt->process( $tt_template_path ? $tt_template_path : \$tt_template, $return, \$body ) 
+        $tt->process( $tt_template_path ? $tt_template_path : \$tt_template, $return, \$body )
             or die $tt->error();
 
         return HTTP::Response->new(RC_OK, undef, undef, $tt_template_path ? $body : encode('UTF-8', $body));
@@ -86,13 +86,14 @@ sub new {
 
     my $self = bless {  %args }, $pkg;
     $self->{model} //= GPBExim::get_model('SQLite3::File');
+
     return $self;
 }
 
 sub start {
     my $self = shift;
 
-    my $d = HTTP::Daemon->new(LocalPort => $self->{LocalPort} // 8080) 
+    my $d = HTTP::Daemon->new(LocalPort => $self->{LocalPort} // 8080)
         || die "Can't start server: $!";
     warn "Сервер: ", $d->url, "\n";
 

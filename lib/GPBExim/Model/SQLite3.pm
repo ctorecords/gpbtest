@@ -5,7 +5,7 @@ use uni::perl ':dumper';
 use parent 'GPBExim::Model';
 
 sub init {
-    my $self = shift; 
+    my $self = shift;
 
     $self->SUPER::init(@_);
 
@@ -13,10 +13,9 @@ sub init {
     $self->{schemafile} //= lib::abs::path('../../../schema/SQLite3.sql');
 }
 
-sub setup_dbh { 
+sub setup_dbh {
     my $self = shift;
     $self->{dbh} = DBI->connect(qq{dbi:SQLite:dbname=}.$self->{dbfile}, "", "", { RaiseError => 1 });
 }
-
 
 1;

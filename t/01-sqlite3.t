@@ -87,7 +87,7 @@ test_parse_chunk( '4 lines' => join(' ',
             { created => "2012-02-13 14:39:22", status => "unknown", address => "fwxvparobkymnbyemevz\@london.com", id => 2 },
         ],
         message_bounce  => [
-            { created => "2012-02-13 14:39:22", reason_id => undef, int_id => "1RwtJa-000AFJ-3B", address_id => 2,
+            { created => "2012-02-13 14:39:22", int_id => "1RwtJa-000AFJ-3B", address_id => 2,
                 str => "1RwtJa-000AFJ-3B <= <> R=1RookS-000Pg8-VO U=mailnull P=local S=3958", o_id=> "3" }
         ],
         log => [
@@ -126,7 +126,6 @@ test_parse_chunk( 'Простая группа строк с успешной о
             { created => "2012-02-13 14:46:10", status => "unknown", address => "ijcxzetfsijoedyg\@hsrail.ru", id => 2 },
         ],
         message_bounce  => [],
-        bounce_reasons  => [],
         log => [
             { o_id => "2", str => q{1RwtQA-000Mti-P5 == ijcxzetfsijoedyg@hsrail.ru R=dnslookup T=remote_smtp defer (-1): domain matches queue_smtp_domains, or -odqs set},
                 created => "2012-02-13 14:46:10", int_id => "1RwtQA-000Mti-P5", address_id => 2 },

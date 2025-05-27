@@ -50,4 +50,3 @@ test_search("Search for email '$domain' with bounce" =>
 
 
 done_testing;
-
