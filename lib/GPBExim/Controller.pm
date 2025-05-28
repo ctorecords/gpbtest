@@ -15,9 +15,6 @@ sub new {
     return $self;
 }
 
-sub  open_log { my $self = shift; if (open(my $fh, "<$_[0]")) { binmode($fh, ":raw"); return $fh } else { die "Не могу открыть файл '$_[0]' $!" } }
-sub close_log { my $self = shift; close $_[0] }
-
 sub parse_line {
     my $self = shift;
     my $line = shift;
@@ -34,13 +31,6 @@ sub parse_line {
         email    => $email,
         other    => $other,
     };
-}
-
-sub DESTROY {
-    my $self = shift;
-
-    # зафинишим все стейтменты
-    $_->finish() for (values %{$self->{sth}});
 }
 
 sub parse_logfile {
@@ -200,6 +190,10 @@ sub parse_chunk {
     }
 }
 
+# открытие и закрытие файлов лога для почанковой записи
+sub  open_log { my $self = shift; if (open(my $fh, "<$_[0]")) { binmode($fh, ":raw"); return $fh } else { die "Не могу открыть файл '$_[0]' $!" } }
+sub close_log { my $self = shift; close $_[0] }
+
 # читаем $self->{chunk_size} полных строк лога, оканчивающихся \n в файле,
 # постепенно передвигая в нём каретку от итерации к итерации
 sub get_next_chunk_from_log {
@@ -235,6 +229,14 @@ sub get_next_chunk_from_log {
     seek($fh, $pos_before, 0) or warn "Seek назад не удался: $!";
     warn "Длинная строка без новой строки — ".$self->{chunk_size}." байт проигнорированы";
     return undef;
+}
+
+
+sub DESTROY {
+    my $self = shift;
+
+    # зафинишим все стейтменты
+    $_->finish() for (values %{$self->{sth}});
 }
 
 1;

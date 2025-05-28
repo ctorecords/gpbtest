@@ -22,5 +22,4 @@ sub init {
     return $self;
 }
 
-
 1;

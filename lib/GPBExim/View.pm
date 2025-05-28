@@ -12,6 +12,8 @@ use JSON::XS;
 use lib::abs '../../lib';
 use GPBExim;
 
+our $d;
+
 sub handle_request {
     my $self = shift;
     my $r = shift;
@@ -28,16 +30,38 @@ sub handle_request {
     my $tt = Template->new(TRIM => 1, ABSOLUTE => 1);
 
     if ($method eq 'GET' && $path eq "/") {
-        $tt_template_path = lib::abs::path('../../templates/start.tt2');
-        $return = { data => {
-            map { $_ =>  $self->{model}{dbh}->selectall_arrayref("select count(*) as ".$_."_count from $_", { Slice => {} })->[0]{$_.'_count'} }
-            qw/message message_address message_bounce log/
-        } };
-    } elsif ($method eq 'GET' && $path eq "/search") {
-        $tt_template_path = lib::abs::path('../../templates/searcg.tt2');
+        $tt_template_path = lib::abs::path('../../templates/search.tt2');
 
     } elsif ($method eq 'POST' && $path eq "/search") {
-        $tt_template_path = lib::abs::path('../../templates/searcg.tt2');
+        $tt_template_path = lib::abs::path('../../templates/search.tt2');
+
+        my $json_text = $r->content;
+        my $rdata = eval { decode_json($json_text) };
+        if ($@ || !$rdata->{s}) {
+            retrurn HTTP::Response->new(HTTP_BAD_REQUEST, "Invalid JSON")
+        }
+        my $email = $rdata->{s};
+        if (!$email) {
+            return HTTP::Response->new(HTTP_BAD_REQUEST, "Invalid request - nothing to search")
+        }
+        my $ids = $self->{model}->search_by_email_substring($email);
+
+        # когда email-ы не найдены
+        # это поведение надо отработать отдельно
+        !@$ids and return HTTP::Response->new(HTTP_NOT_FOUND, "Emails not found");
+
+        my @tables = qw/log message/;
+        $return = { data => $self->{model}->get_rows_on_address_id(\@tables, $ids) };
+
+        if (defined $return->{data}->[100]) {
+            $return->{data}->[99]{continue} = 1;
+            splice @{ $return->{data} }, 100, 1;
+        };
+
+        $args{render}='JSON' if (!$args{testit});
+
+    } elsif ($method eq 'POST' && $path eq "/suggest") {
+        $tt_template_path = lib::abs::path('../../templates/search.tt2');
 
         my $json_text = $r->content;
         my $rdata = eval { decode_json($json_text) };
@@ -55,7 +79,8 @@ sub handle_request {
         !@$ids and return HTTP::Response->new(HTTP_NOT_FOUND, "Emails not found");
 
         my @tables = qw/log message/;
-        $return = { data => $self->{model}->get_rows_on_address_id(\@tables, $ids) };
+        $return = { data => $self->{model}->get_emails_on_address_id($ids) };
+        $args{render}='JSON' if (!$args{testit});
 
     } elsif ($method eq 'POST' && $path eq "/submit") {
         $return = {data => {} };
@@ -70,7 +95,16 @@ sub handle_request {
         $tt->process( $tt_template_path ? $tt_template_path : \$tt_template, $return, \$body )
             or die $tt->error();
 
-        return HTTP::Response->new(RC_OK, undef, undef, $tt_template_path ? $body : encode('UTF-8', $body));
+        my $resp = HTTP::Response->new(RC_OK, undef, undef, $tt_template_path ? $body : encode('UTF-8', $body));
+        $resp->header('Content-Type' => 'text/html; charset=utf-8');
+        return $resp;
+    }
+    if ($args{render} eq 'JSON') {
+        my $body = encode_json($return);
+
+        my $resp = HTTP::Response->new(RC_OK, undef, undef, $tt_template_path ? $body : encode('UTF-8', $body));
+        $resp->header('Content-Type' => 'application/json; charset=utf-8');
+        return $resp;
     }
 
     # возвращаем просто данные, если дошли до этой строки
@@ -80,8 +114,8 @@ sub handle_request {
 sub new {
     my $pkg  = shift;
     my %args = (
+        @_,
         LocalPort => 8080,
-        @_
     );
 
     my $self = bless {  %args }, $pkg;
@@ -93,9 +127,14 @@ sub new {
 sub start {
     my $self = shift;
 
-    my $d = HTTP::Daemon->new(LocalPort => $self->{LocalPort} // 8080)
+    $d = HTTP::Daemon->new(
+        LocalAddr => '0.0.0.0',
+        LocalPort => $self->{LocalPort} // 8080
+    )
         || die "Can't start server: $!";
     warn "Сервер: ", $d->url, "\n";
+
+    $SIG{INT} = sub { close($d) if $d; exit; };
 
     while (my $c = $d->accept) {
         while (my $r = $c->get_request) {
@@ -106,5 +145,9 @@ sub start {
         undef($c);
     }
 }
+
+END { warn '--';
+$d && warn "Bye...\n" && close($d)
+};
 
 1;

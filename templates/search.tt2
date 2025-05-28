@@ -1,12 +1,245 @@
-<html>
-    <head></head>
-    <body>
-        <h1>Поиск по timestamp и int_id</h1>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Поиск по email</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 2rem;
+      background: #f9f9f9;
+      color: #333;
+    }
 
-        <form action="/search">
-            <input type="text" name="s">
-            <input type="submit">
-        </form>
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
 
-    </body>
+    form {
+      position: relative;
+      max-width: 400px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+
+    input[type="submit"] {
+      margin-top: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    #suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-top: none;
+      z-index: 10;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    #suggestions div {
+      padding: 0.5rem;
+      cursor: pointer;
+    }
+
+    #suggestions div.selected {
+      background-color: #d0e0f0;
+      font-weight: bold;
+    }
+
+    mark {
+      background-color: #ffea80;
+      padding: 0 2px;
+    }
+
+    table {
+      margin-top: 2rem;
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .notice-row td {
+      font-style: italic;
+      color: #555;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Поиск по email</h1>
+
+  <form onsubmit="submitForm(event)" autocomplete="off">
+    <input type="text" name="s" placeholder="Введите email" oninput="suggest(this)" onkeydown="handleKey(event)" autofocus>
+    <div id="suggestions"></div>
+    <input type="submit" value="Поиск">
+  </form>
+
+  <table id="results"></table>
+
+  <script>
+    let debounceTimer;
+    let selectedIndex = -1;
+    let lastQuery = "";
+
+    const input = document.querySelector('input[name="s"]');
+    const suggestionsBox = document.getElementById('suggestions');
+
+    input.addEventListener('blur', () => {
+      setTimeout(() => {
+        suggestionsBox.style.display = 'none';
+        selectedIndex = -1;
+      }, 200);
+    });
+
+    input.addEventListener('focus', () => {
+      if (input.value.trim().length >= 3) suggest(input);
+    });
+
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function highlight(text, query) {
+      const regex = new RegExp(escapeRegExp(query), 'gi');
+      return text.replace(regex, m => `<mark>${m}</mark>`);
+    }
+
+    async function suggest(inputEl) {
+      const query = inputEl.value.trim();
+      if (query.length < 3) {
+        suggestionsBox.style.display = 'none';
+        return;
+      }
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        const res = await fetch('/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ s: query })
+        });
+        const data = await res.json();
+        suggestionsBox.innerHTML = '';
+        selectedIndex = -1;
+        lastQuery = query;
+
+        if (data.data?.length) {
+          data.data.forEach((item, i) => {
+            const div = document.createElement('div');
+            div.innerHTML = highlight(item.address, query);
+            div.dataset.index = i;
+            div.dataset.value = item.address;
+            div.onclick = () => {
+              inputEl.value = item.address;
+              suggestionsBox.style.display = 'none';
+              submitForm(null);
+            };
+            suggestionsBox.appendChild(div);
+          });
+          suggestionsBox.style.display = 'block';
+        } else {
+          suggestionsBox.style.display = 'none';
+        }
+      }, 300);
+    }
+
+    function handleKey(event) {
+      const items = suggestionsBox.querySelectorAll('div');
+      if (!items.length || suggestionsBox.style.display === 'none') return;
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        selectedIndex = (selectedIndex + 1) % items.length;
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+      } else if (event.key === 'Enter') {
+        if (selectedIndex >= 0 && selectedIndex < items.length) {
+          event.preventDefault();
+          const chosen = items[selectedIndex].dataset.value;
+          input.value = chosen;
+          suggestionsBox.style.display = 'none';
+          submitForm(null);
+        }
+      }
+
+      items.forEach((el, i) => {
+        el.classList.toggle('selected', i === selectedIndex);
+      });
+    }
+
+    async function submitForm(event) {
+      if (event) event.preventDefault();
+
+      const s = input.value.trim();
+      const res = await fetch('/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ s })
+      });
+
+      const json = await res.json();
+      const table = document.getElementById('results');
+      table.innerHTML = '';
+
+      if (!json.data || json.data.length === 0) {
+        table.innerHTML = '<tr><td colspan="2">Нет данных</td></tr>';
+        return;
+      }
+
+      const header = document.createElement('tr');
+      ['created', 'str'].forEach(key => {
+        const th = document.createElement('th');
+        th.textContent = key;
+        header.appendChild(th);
+      });
+      table.appendChild(header);
+
+      const regex = new RegExp(escapeRegExp(s), 'gi');
+
+      json.data.forEach(row => {
+        const tr = document.createElement('tr');
+        ['created', 'str'].forEach(key => {
+          const td = document.createElement('td');
+          if (key === 'str' && s.length > 0) {
+            td.innerHTML = row[key].replace(regex, m => `<mark>${m}</mark>`);
+          } else {
+            td.textContent = row[key];
+          }
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+
+        if (row.continue) {
+          const notice = document.createElement('tr');
+          notice.className = 'notice-row';
+          const td = document.createElement('td');
+          td.colSpan = 2;
+          td.textContent = 'Количество найденных строк превышает лимит';
+          notice.appendChild(td);
+          table.appendChild(notice);
+        }
+      });
+    }
+  </script>
+</body>
 </html>

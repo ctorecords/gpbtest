@@ -6,7 +6,8 @@ use GPBExim::Controller;
 my $model;
 my $controller;
 
-$model = GPBExim::get_model('SQLite3::File'); $model->setup_schema();
+$model = GPBExim::get_model('SQLite3::File')
+    ->setup_schema();
 $controller = GPBExim::Controller->new();
 
 
@@ -26,4 +27,3 @@ if (my $LOG_FH = $controller->open_log(lib::abs::path('../temp/maillog'))) {
 
     $controller->close_log($LOG_FH);
 }
-undef $model, $controller;

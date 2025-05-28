@@ -101,14 +101,31 @@ sub get_rows_on_address_id {
     my $ids      = shift;
     my %args     = @_;
 
+    my $limit = delete $args{limit} // 101;
+    $limit =  100 if $limit > 101;
+
     my $return = $self->{dbh}->selectall_arrayref(
             join (' union ',
                 map { qq{
                     select created, str, int_id, o_id, '$_' as t
                     from $_ where address_id in (@{[ join(', ', map { '?' } @$ids) ]})
                 } } @$tables
-            ). ' order by int_id, o_id',
+            ). " order by int_id, o_id limit $limit",
             { Slice => {} },  map { @$ids } @$tables );
+
+    $args{debug} &&
+        warn dumper($return);
+    return $return;
+}
+
+sub get_emails_on_address_id {
+    my $self     = shift;
+    my $ids      = shift;
+    my %args     = @_;
+
+    my $return = $self->{dbh}->selectall_arrayref(
+        qq{select address from message_address where id in (@{[ join(', ', map { '?' } @$ids) ]}) limit 10},
+        { Slice => {} },  @$ids );
 
     $args{debug} &&
         warn dumper($return);

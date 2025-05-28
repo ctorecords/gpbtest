@@ -131,7 +131,7 @@ sub test_search {
 
     $c->parse_chunk($m => $chunk);
 
-    my $got = $v->handle_request(cq($search));
+    my $got = $v->handle_request(cq($search), testit => 1);
     is_deeply(
         $got,
         $expected,
