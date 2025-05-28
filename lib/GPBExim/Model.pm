@@ -5,6 +5,7 @@ use uni::perl ':dumper';
 use Try::Tiny;
 
 use DBI;
+use JSON::XS;
 use Search::Xapian;
 use File::Path qw(remove_tree);
 
@@ -153,7 +154,8 @@ sub index_address_at_xapian {
     return if defined $self->{indexed_xapian_email}{$id};
     my $doc = Search::Xapian::Document->new;
     $self->_add_xapian_ngrams($doc, $email, 'N');
-    $doc->set_data($id);
+
+    $doc->set_data(encode_json({ id => $id, email => $email }));
     $self->{xapian_db}->add_document($doc);
 
     $self->{indexed_xapian_email}{$id} = $email;
@@ -172,11 +174,30 @@ sub search_by_email_substring {
     my %results;
 
     for my $match ($mset->items) {
-        my $id = $match->get_document->get_data;
-        $results{$id}=1;
+        my $data = $match->get_document->get_data;
+        my $obj  = decode_json($data);
+        $results{$obj->{id}}=$obj->{email};
     }
 
-    return [keys %results];
+    return \%results;
+}
+
+sub search_id_by_email_substring {
+    my $self      = shift;
+    my $substring = shift;
+    croak "substring is required" unless defined $substring;
+
+    my $results = $self->search_by_email_substring($substring);
+    return [keys %$results];
+}
+
+sub search_email_by_email_substring {
+    my $self      = shift;
+    my $substring = shift;
+    croak "substring is required" unless defined $substring;
+
+    my $results = $self->search_by_email_substring($substring);
+    return [values %$results];
 }
 
 sub DESTROY {

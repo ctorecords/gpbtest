@@ -38,20 +38,23 @@ sub handle_request {
         my $json_text = $r->content;
         my $rdata = eval { decode_json($json_text) };
         if ($@ || !$rdata->{s}) {
-            retrurn HTTP::Response->new(HTTP_BAD_REQUEST, "Invalid JSON")
+            my $resp = HTTP::Response->new(RC_OK, undef, undef, '{"data":[]}');
+            $resp->header('Content-Type' => 'application/json; charset=utf-8');
+            return $resp;
         }
         my $email = $rdata->{s};
         if (!$email) {
-            return HTTP::Response->new(HTTP_BAD_REQUEST, "Invalid request - nothing to search")
+            my $resp = HTTP::Response->new(RC_OK, undef, undef, '{"data":[]}');
+            $resp->header('Content-Type' => 'application/json; charset=utf-8');
+            return $resp;
         }
-        my $ids = $self->{model}->search_by_email_substring($email);
+        my $ids = $self->{model}->search_id_by_email_substring($email);
 
         # когда email-ы не найдены
         # это поведение надо отработать отдельно
         !@$ids and return HTTP::Response->new(HTTP_NOT_FOUND, "Emails not found");
 
-        my @tables = qw/log message/;
-        $return = { data => $self->{model}->get_rows_on_address_id(\@tables, $ids) };
+        $return = { data => $self->{model}->get_rows_on_address_id([qw/log message/], $ids) };
 
         if (defined $return->{data}->[100]) {
             $return->{data}->[99]{continue} = 1;
@@ -61,30 +64,35 @@ sub handle_request {
         $args{render}='JSON' if (!$args{testit});
 
     } elsif ($method eq 'POST' && $path eq "/suggest") {
-        $tt_template_path = lib::abs::path('../../templates/search.tt2');
+        $args{render}='JSON' if (!$args{testit});
 
         my $json_text = $r->content;
         my $rdata = eval { decode_json($json_text) };
         if ($@ || !$rdata->{s}) {
-            retrurn HTTP::Response->new(HTTP_BAD_REQUEST, "Invalid JSON")
+            my $resp = HTTP::Response->new(RC_OK, undef, undef, '{"data":[]}');
+            $resp->header('Content-Type' => 'application/json; charset=utf-8');
+            return $resp;
         }
         my $email = $rdata->{s};
         if (!$email) {
-            retrurn HTTP::Response->new(HTTP_BAD_REQUEST, "Invalid request - nothing to search")
+            my $resp = HTTP::Response->new(RC_OK, undef, undef, '{"data":[]}');
+            $resp->header('Content-Type' => 'application/json; charset=utf-8');
+            return $resp;
         }
-        my $ids = $self->{model}->search_by_email_substring($email);
+        my $emails = $self->{model}->search_email_by_email_substring($email);
 
         # когда email-ы не найдены
         # это поведение надо отработать отдельно
-        !@$ids and return HTTP::Response->new(HTTP_NOT_FOUND, "Emails not found");
+        if (!@$emails) {
+            my $resp = HTTP::Response->new(RC_OK, undef, undef, '{"data":[]}');
+            $resp->header('Content-Type' => 'application/json; charset=utf-8');
+            return $resp;
+        }
 
-        my @tables = qw/log message/;
-        $return = { data => $self->{model}->get_emails_on_address_id($ids) };
-        $args{render}='JSON' if (!$args{testit});
+        my $array=[];
+        push @$array, {address => $_} for @$emails;
+        $return = { data => $array };
 
-    } elsif ($method eq 'POST' && $path eq "/submit") {
-        $return = {data => {} };
-        $tt_template = "Received POST data: $content";
     } else {
         return HTTP::Response->new(RC_NOT_FOUND);
     }
@@ -115,7 +123,7 @@ sub new {
     my $pkg  = shift;
     my %args = (
         @_,
-        LocalPort => 8080,
+        LocalPort => 8081,
     );
 
     my $self = bless {  %args }, $pkg;
@@ -146,8 +154,6 @@ sub start {
     }
 }
 
-END { warn '--';
-$d && warn "Bye...\n" && close($d)
-};
+END { $d && warn "Bye...\n" && close($d) };
 
 1;
