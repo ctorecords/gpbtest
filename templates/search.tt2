@@ -28,13 +28,6 @@
       box-sizing: border-box;
     }
 
-    input[type="submit"] {
-      margin-top: 0.5rem;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-
     #suggestions {
       position: absolute;
       top: 100%;
@@ -77,6 +70,9 @@
       vertical-align: top;
     }
 
+    td[data-key="created"] {
+        white-space: nowrap;
+    }
     .notice-row td {
       font-style: italic;
       color: #555;
@@ -90,7 +86,6 @@
   <form onsubmit="submitForm(event)" autocomplete="off">
     <input type="text" name="s" placeholder="Введите email" oninput="suggest(this)" onkeydown="handleKey(event)" autofocus>
     <div id="suggestions"></div>
-    <input type="submit" value="Поиск">
   </form>
 
   <table id="results"></table>
@@ -143,19 +138,31 @@
         lastQuery = query;
 
         if (data.data?.length) {
-          data.data.forEach((item, i) => {
+            data.data.forEach((item, i) => {
             const div = document.createElement('div');
             div.innerHTML = highlight(item.address, query);
             div.dataset.index = i;
             div.dataset.value = item.address;
+
             div.onclick = () => {
-              inputEl.value = item.address;
-              suggestionsBox.style.display = 'none';
-              submitForm(null);
+                inputEl.value = item.address;
+                suggestionsBox.style.display = 'none';
+                submitForm(null);
             };
+            div.addEventListener('mouseenter', () => {
+                selectedIndex = i;
+                updateSuggestionHighlight();
+            });
+
+            div.addEventListener('mouseleave', () => {
+                selectedIndex = -1;
+                updateSuggestionHighlight();
+            });
+
             suggestionsBox.appendChild(div);
-          });
-          suggestionsBox.style.display = 'block';
+            });
+
+            suggestionsBox.style.display = 'block';
         } else {
           suggestionsBox.style.display = 'none';
         }
@@ -163,30 +170,35 @@
     }
 
     function handleKey(event) {
-      const items = suggestionsBox.querySelectorAll('div');
-      if (!items.length || suggestionsBox.style.display === 'none') return;
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        selectedIndex = (selectedIndex + 1) % items.length;
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-      } else if (event.key === 'Enter') {
-        if (selectedIndex >= 0 && selectedIndex < items.length) {
-          event.preventDefault();
-          const chosen = items[selectedIndex].dataset.value;
-          input.value = chosen;
-          suggestionsBox.style.display = 'none';
-          submitForm(null);
+        const items = suggestionsBox.querySelectorAll('div');
+        if (!items.length || suggestionsBox.style.display === 'none') return;
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            selectedIndex = (selectedIndex + 1) % items.length;
+            updateSuggestionHighlight();
+            items[selectedIndex].scrollIntoView({ block: 'nearest' });
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+            updateSuggestionHighlight();
+            items[selectedIndex].scrollIntoView({ block: 'nearest' });
+        } else if (event.key === 'Enter') {
+            if (selectedIndex >= 0 && selectedIndex < items.length) {
+            event.preventDefault();
+            const chosen = items[selectedIndex].dataset.value;
+            input.value = chosen;
+            suggestionsBox.style.display = 'none';
+            submitForm(null);
+            }
         }
-      }
-
-      items.forEach((el, i) => {
-        el.classList.toggle('selected', i === selectedIndex);
-      });
     }
 
+    function updateSuggestionHighlight() {
+        const items = suggestionsBox.querySelectorAll('div');
+        items.forEach((el, i) => {
+            el.classList.toggle('selected', i === selectedIndex);
+        });
+    }
     async function submitForm(event) {
       if (event) event.preventDefault();
 
@@ -220,6 +232,7 @@
         const tr = document.createElement('tr');
         ['created', 'str'].forEach(key => {
           const td = document.createElement('td');
+          td.dataset.key = key;
           if (key === 'str' && s.length > 0) {
             td.innerHTML = row[key].replace(regex, m => `<mark>${m}</mark>`);
           } else {

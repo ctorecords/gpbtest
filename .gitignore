@@ -7,6 +7,9 @@
 *.pm.tdy
 *.bs
 *.db
+.vscode/*
+temp/xapian
+temp/*.log
 
 # Devel::Cover
 cover_db/

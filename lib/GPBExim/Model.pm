@@ -164,13 +164,17 @@ sub index_address_at_xapian {
 sub search_by_email_substring {
     my $self      = shift;
     my $substring = shift;
+    my %args      = (
+        limit => $self->{xapian_max_search_result},
+        @_
+    );
     croak "substring is required" unless defined $substring;
 
     my $query = Search::Xapian::Query->new("N$substring");
     my $enquire = Search::Xapian::Enquire->new($self->{xapian_db});
     $enquire->set_query($query);
 
-    my $mset = $enquire->get_mset(0, $self->{xapian_max_search_result});
+    my $mset = $enquire->get_mset(0, $args{limit});
     my %results;
 
     for my $match ($mset->items) {
@@ -186,8 +190,12 @@ sub search_id_by_email_substring {
     my $self      = shift;
     my $substring = shift;
     croak "substring is required" unless defined $substring;
+    my %args      = (
+        limit => $self->{xapian_max_search_result},
+        @_
+    );
 
-    my $results = $self->search_by_email_substring($substring);
+    my $results = $self->search_by_email_substring($substring, %args);
     return [keys %$results];
 }
 
@@ -195,9 +203,13 @@ sub search_email_by_email_substring {
     my $self      = shift;
     my $substring = shift;
     croak "substring is required" unless defined $substring;
+    my %args      = (
+        limit => $self->{xapian_max_search_result},
+        @_
+    );
 
-    my $results = $self->search_by_email_substring($substring);
-    return [values %$results];
+    my $results = $self->search_by_email_substring($substring, %args);
+    return [sort values %$results];
 }
 
 sub DESTROY {

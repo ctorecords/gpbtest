@@ -79,7 +79,7 @@ sub handle_request {
             $resp->header('Content-Type' => 'application/json; charset=utf-8');
             return $resp;
         }
-        my $emails = $self->{model}->search_email_by_email_substring($email);
+        my $emails = $self->{model}->search_email_by_email_substring($email, limit => 20);
 
         # когда email-ы не найдены
         # это поведение надо отработать отдельно
