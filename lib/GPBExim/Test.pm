@@ -53,8 +53,8 @@ sub test_parse_chunk {
 
     $c->parse_chunk($m => $chunk);
 
-    my $message_address = $m->{dbh}->selectall_arrayref("select id, created, address, status from message_address", { Slice => {} });
-    my %xemails = map { $_->{address} => { orig => [$_->{id}], found=> $m->search_by_email_substring($_->{address}) } } @$message_address;
+    my $message_address = $m->{dbh}->selectall_arrayref("select id, created, address from message_address", { Slice => {} });
+    my %xemails = map { $_->{address} => { orig => [$_->{id}], found=> $m->search_id_by_email_substring($_->{address}) } } @$message_address;
     is_deeply($xemails{$_}{orig}, $xemails{$_}{found}, encode('UTF-8', qq{Check xapian index for "$_" ($title)}))
         for (keys %xemails);
 
@@ -88,9 +88,9 @@ sub test_parse_logfile {
     my $search_expected = shift;
     my %args  = (
         model_type => 'SQLite3::Memory',
-        rm_xapian_db_on_destroy=>1,
-        rm_xapian_db_on_init => 1,
-        rm_dbfile_on_init => 1,
+        rm_xapian_db_on_destroy=> 1,
+        rm_xapian_db_on_init =>   1,
+        rm_dbfile_on_init =>      1,
         @_
     );
 
@@ -105,7 +105,7 @@ sub test_parse_logfile {
     $fname and $c->parse_logfile($fname => $m);
 
     for my $s (keys %$search_expected) {
-        my $got = $v->handle_request(cq($s));
+        my $got = $v->handle_request(cq($s), testit => 1);
         is_deeply($got, $search_expected->{$s}, encode('UTF-8', "$title: $s"));
     }
 }

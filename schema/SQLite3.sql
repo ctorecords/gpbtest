@@ -2,9 +2,10 @@
 CREATE TABLE IF NOT EXISTS message_address (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     created TIMESTAMP(0) NOT NULL,
-    address VARCHAR NOT NULL UNIQUE,
-    status VARCHAR CHECK (status IN ('unknown','bounced')) DEFAULT 'unknown'
+    address VARCHAR NOT NULL UNIQUE
 );
+CREATE INDEX IF NOT EXISTS message_address_id_idx ON message_address (id);
+CREATE INDEX IF NOT EXISTS message_address_address_idx ON message_address (address);
 
 -- Bounce-события
 CREATE TABLE IF NOT EXISTS message_bounce (

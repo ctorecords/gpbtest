@@ -83,8 +83,8 @@ test_parse_chunk( '4 lines' => join(' ',
 
     {
         message_address => [
-            { created => "2012-02-13 14:39:22", status => "unknown", address => "udbbwscdnbegrmloghuf\@london.com", id => 1 },
-            { created => "2012-02-13 14:39:22", status => "unknown", address => "fwxvparobkymnbyemevz\@london.com", id => 2 },
+            { created => "2012-02-13 14:39:22", address => "udbbwscdnbegrmloghuf\@london.com", id => 1 },
+            { created => "2012-02-13 14:39:22", address => "fwxvparobkymnbyemevz\@london.com", id => 2 },
         ],
         message_bounce  => [
             { created => "2012-02-13 14:39:22", int_id => "1RwtJa-000AFJ-3B", address_id => 2,
@@ -122,8 +122,8 @@ test_parse_chunk( 'Простая группа строк с успешной о
                 created => "2012-02-13 14:46:10", int_id => "1RwtQA-000Mti-P5", address_id => 1, status => undef, id=>'rt-3.8.8-21135-1329129970-559.3914282-6-0@rushost.ru' },
         ],
         message_address => [
-            { created => "2012-02-13 14:46:10", status => "unknown", address => "ysxeuila\@rushost.ru", id => 1 },
-            { created => "2012-02-13 14:46:10", status => "unknown", address => "ijcxzetfsijoedyg\@hsrail.ru", id => 2 },
+            { created => "2012-02-13 14:46:10", address => "ysxeuila\@rushost.ru", id => 1 },
+            { created => "2012-02-13 14:46:10", address => "ijcxzetfsijoedyg\@hsrail.ru", id => 2 },
         ],
         message_bounce  => [],
         log => [

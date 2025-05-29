@@ -25,6 +25,9 @@ sub new {
 sub init {
     my $self = shift;
 
+    # Настройка xapian
+    my $default_xapian_dir = lib::abs::path('../../temp/xapian');
+    $self->{xapian_dir} = $default_xapian_dir;
     if ($self->{rm_xapian_db_on_init} and $self->{xapian_dir} and -d $self->{xapian_dir}) {
         delete $self->{xapian_db};
         remove_tree($self->{xapian_dir}, { error => \my $err });
@@ -32,15 +35,14 @@ sub init {
             warn "Failed to remove Xapian index at $self->{xapian_dir}: @$err\n";
         }
     };
-
-    my $default_xapian_dir = lib::abs::path('../../temp/xapian');
-    $self->{oidstart} = 0;
-    $self->{xapian_dir} = $default_xapian_dir;
     $self->{xapian_db}  = Search::Xapian::WritableDatabase->new(
         $self->{xapian_dir},
         Search::Xapian::DB_CREATE_OR_OPEN
     );
     $self->{xapian_max_search_result} = 100_000_000;
+
+    $self->{oidstart} = 0;
+
     return $self;
 
 }

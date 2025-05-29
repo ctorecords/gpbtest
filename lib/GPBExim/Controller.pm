@@ -68,10 +68,10 @@ sub parse_chunk {
         insert_log            => qq{ insert into log (created, int_id, str, address_id, o_id) values(?, ?, ?, ?, ?) },
         insert_message        => qq{ insert into message (id, created, int_id, str, address_id, o_id) values(?, ?, ?, ?, ?, ?) },
         insert_message_bounce => qq{ insert into message_bounce (created, int_id, address_id, str, o_id) values(?, ?, ?, ?, ?) },
-        insert_address        => qq{ insert into message_address (created, address, status) values(?, ?, ?) },
+        insert_address        => qq{ insert into message_address (created, address) values(?, ?) },
 
         get_message_by_id     => qq{ select id, created, int_id, str from message where id=? },
-        get_address_by_email  => qq{ select id, created, address, status from message_address where address=? },
+        get_address_by_email  => qq{ select id, created, address from message_address where address=? },
 
         get_message_and_log_by_int_id => qq{
             select
@@ -123,7 +123,7 @@ sub parse_chunk {
                     or die $self->{sth}{get_address_by_email}->errstr;
                 my $address = $self->{sth}{get_address_by_email}->fetchrow_hashref();
                 if (!$address) {
-                    $self->{sth}{insert_address}->execute($datetime, $email, 'unknown')
+                    $self->{sth}{insert_address}->execute($datetime, $email)
                         or die $self->{sth}{insert_address}->errstr;
                     $self->{emails}{$email}= $address_id = $model->{dbh}->last_insert_id;
                     $model->index_address_at_xapian($email => $address_id);
