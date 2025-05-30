@@ -8,6 +8,7 @@ use DBI;
 use JSON::XS;
 use Search::Xapian;
 use File::Path qw(remove_tree);
+use Scalar::Util::Numeric qw/isint/;
 
 our $DBFILE;
 our $SCHEMAFILE;
@@ -137,6 +138,7 @@ sub get_rows_on_address_id {
     my $ids      = shift;
     my %args     = @_;
 
+    die "Limit is must by int" if defined ($args{limit}) && !isint($args{limit});
     my $limit = delete $args{limit} // 101;
     $limit =  100 if $limit > 101;
 
@@ -146,7 +148,7 @@ sub get_rows_on_address_id {
                     select created, str, int_id, o_id, '$_' as t
                     from $_ where address_id in (@{[ join(', ', map { '?' } @$ids) ]})
                 } } @$tables
-            ). " order by int_id, o_id limit $limit",
+            ). " order by @{[$self->sql_order_str('int_id')]}, o_id asc limit $limit",
             { Slice => {} },  map { @$ids } @$tables );
 
     $args{debug} &&

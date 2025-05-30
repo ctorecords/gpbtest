@@ -18,4 +18,6 @@ sub setup_dbh {
     $self->{dbh} = DBI->connect(qq{dbi:SQLite:dbname=}.$self->{dbfile}, "", "", { RaiseError => 1 });
 }
 
+sub sql_order_str { shift; my $field = shift; return sprintf('%s COLLATE BINARY', $field) }
+
 1;

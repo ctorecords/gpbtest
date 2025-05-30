@@ -111,7 +111,6 @@ sub test_parse_logfile {
 
     for my $s (keys %$search_expected) {
         my $got = $v->handle_request(cq($s), testit => 1);
-        warn dumper($got);
         is_deeply($got, $search_expected->{$s}, encode('UTF-8', "$title: $s"));
     }
 }

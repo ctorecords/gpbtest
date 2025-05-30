@@ -73,6 +73,7 @@ sub txn {
     };
 }
 
+sub sql_order_str { shift; my $field = shift; return sprintf('BINARY %s', $field) }
 
 sub DESTROY {
     my $self = shift;
