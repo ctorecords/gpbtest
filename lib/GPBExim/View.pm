@@ -12,17 +12,26 @@ use JSON::XS;
 use lib::abs '../../lib';
 use GPBExim;
 
-our $d;
+sub new {
+    my $pkg  = shift;
+    my %args = (
+        @_,
+    );
+
+    my $self = bless {  %args }, $pkg;
+
+    return $self;
+}
 
 sub handle_request {
     my $self = shift;
     my $r = shift;
-    my %args = (
-        render => 'norender',
-        @_
-    );
+    my %args = @_;
+
+    my $m = $self->{model};
+
     my $tt_template;
-    my $tt_template_path;
+    my $tt_template_path = lib::abs::path('../../templates/search.html');
     my $return = { data => {} };
 
     my ($method, $path, $content) = ($r->method, $r->uri->path, $r->content);
@@ -30,130 +39,118 @@ sub handle_request {
     my $tt = Template->new(TRIM => 1, ABSOLUTE => 1);
 
     if ($method eq 'GET' && $path eq "/") {
-        $tt_template_path = lib::abs::path('../../templates/search.html');
-
+        $return = $self->root($r, $m);
     } elsif ($method eq 'POST' && $path eq "/search") {
-        $tt_template_path = lib::abs::path('../../templates/search.html');
-
-        my $json_text = $r->content;
-        my $rdata = eval { decode_json($json_text) };
-        if ($@ || !$rdata->{s}) {
-            my $resp = HTTP::Response->new(RC_OK, undef, undef, '{"data":[]}');
-            $resp->header('Content-Type' => 'application/json; charset=utf-8');
-            return $resp;
-        }
-        my $email = $rdata->{s};
-        if (!$email) {
-            my $resp = HTTP::Response->new(RC_OK, undef, undef, '{"data":[]}');
-            $resp->header('Content-Type' => 'application/json; charset=utf-8');
-            return $resp;
-        }
-        my $ids = $self->{model}->search_id_by_email_substring($email);
-
-        # когда email-ы не найдены
-        # это поведение надо отработать отдельно
-        !@$ids and return HTTP::Response->new(HTTP_NOT_FOUND, "Emails not found");
-
-        $return = { data => $self->{model}->get_rows_on_address_id([qw/log message/], $ids) };
-
-        if (defined $return->{data}->[100]) {
-            $return->{data}->[99]{continue} = 1;
-            splice @{ $return->{data} }, 100, 1;
-        };
-
-        $args{render}='JSON' if (!$args{testit});
-
+        $return = $self->search($r, $m);
     } elsif ($method eq 'POST' && $path eq "/suggest") {
-        $args{render}='JSON' if (!$args{testit});
+        $return = $self->suggest($r, $m);
+    } elsif (!$args{testit}) {
+        $return = { render => 'HTTP::Response', data => HTTP::Response->new(RC_NOT_FOUND) };
+    }
 
-        my $json_text = $r->content;
-        my $rdata = eval { decode_json($json_text) };
-        if ($@ || !$rdata->{s}) {
-            my $resp = HTTP::Response->new(RC_OK, undef, undef, '{"data":[]}');
-            $resp->header('Content-Type' => 'application/json; charset=utf-8');
-            return $resp;
-        }
-        my $email = $rdata->{s};
-        if (!$email) {
-            my $resp = HTTP::Response->new(RC_OK, undef, undef, '{"data":[]}');
-            $resp->header('Content-Type' => 'application/json; charset=utf-8');
-            return $resp;
-        }
-        my $emails = $self->{model}->search_email_by_email_substring($email, limit => 20);
+    # вернём данные, если находимся в режиме теста
+    $args{testit} && return { data => $return->{data} };
 
-        # когда email-ы не найдены
-        # это поведение надо отработать отдельно
-        if (!@$emails) {
-            my $resp = HTTP::Response->new(RC_OK, undef, undef, '{"data":[]}');
-            $resp->header('Content-Type' => 'application/json; charset=utf-8');
-            return $resp;
-        }
-
-        my $array=[];
-        push @$array, {address => $_} for @$emails;
-        $return = { data => $array };
-
-    } else {
-        return HTTP::Response->new(RC_NOT_FOUND);
+    # если пришёл готовый HTTP::Response, просто его возвращаем
+    if ($return->{render} eq 'HTTP::Response') {
+        return $return->{data};
     }
 
     # рендер через Template::Toolkit
-    if ($args{render} eq 'TT') {
+    if ($return->{render} eq 'TT') {
         my $body = '';
-        $tt->process( $tt_template_path ? $tt_template_path : \$tt_template, $return, \$body )
+        $tt->process( $return->{template}, $return, \$body )
             or die $tt->error();
 
-        my $resp = HTTP::Response->new(RC_OK, undef, undef, $tt_template_path ? $body : encode('UTF-8', $body));
+        my $resp = HTTP::Response->new(RC_OK, undef, undef, $body);
         $resp->header('Content-Type' => 'text/html; charset=utf-8');
         return $resp;
     }
-    if ($args{render} eq 'JSON') {
+
+    # рендер JSON
+    if ($return->{render} eq 'JSON') {
         my $body = encode_json($return);
 
-        my $resp = HTTP::Response->new(RC_OK, undef, undef, $tt_template_path ? $body : encode('UTF-8', $body));
+        my $resp = HTTP::Response->new(RC_OK, undef, undef, encode('UTF-8', $body));
         $resp->header('Content-Type' => 'application/json; charset=utf-8');
         return $resp;
     }
 
     # возвращаем просто данные, если дошли до этой строки
+    return { data => $return->{data} };
+}
+
+sub suggest {
+    my $self = shift;
+    my $r    = shift;
+    my $m    = shift;
+    my %args = @_;
+
+    my $return = { data => [] };
+    $return->{render} = 'JSON' if (!$args{testit});
+
+    # получим входной запрос
+    my $rdata = eval { decode_json($r->content) };
+    return $return if ($@ || !$rdata->{s});
+
+    # получим поисковую строку по e-mail
+    my $email = $rdata->{s}
+        or return $return;
+
+    # получим список проиндексированных в Xapian e-mail адресов
+    my $emails = $m->search_email_by_email_substring($email);
+    return $return if (!@$emails);
+
+    push @{$return->{data}}, {address => $_} for @$emails;
+
+    return $return;
+
+}
+
+sub search {
+    my $self = shift;
+    my $r    = shift;
+    my $m    = shift;
+    my %args = @_;
+
+    my $return = { data => [] };
+    $return->{render} = 'JSON' if (!$args{testit});
+
+    # получим входной запрос
+    my $rdata = eval { decode_json($r->content) };
+    return $return if ($@ || !$rdata->{s});
+
+    # получим поисковую строку по e-mail
+    my $email = $rdata->{s}
+        or return $return;
+
+    # получим список проиндексированных в Xapian e-mail адресов
+    my $ids = $m->search_id_by_email_substring($email);
+    return $return if (!@$ids);
+
+    # получим данные строчек log и message, связанных с этими адресами
+    $return->{data} = $m->get_rows_on_address_id([qw/log message/], $ids);
+
+    # если строчек больше лимита, то последний 101й элемент пометим
+    if (defined $return->{data}->[100]) {
+        $return->{data}->[99]{continue} = 1;
+        splice @{ $return->{data} }, 100, 1;
+    };
+
     return $return;
 }
 
-sub new {
-    my $pkg  = shift;
-    my %args = (
-        @_,
-        LocalPort => 8081,
-    );
-
-    my $self = bless {  %args }, $pkg;
-    $self->{model} //= GPBExim::get_model('MySQL');
-
-    return $self;
-}
-
-sub start {
+sub root {
     my $self = shift;
+    my $r    = shift;
+    my $m    = shift;
+    my %args = @_;
 
-    $d = HTTP::Daemon->new(
-        LocalAddr => '0.0.0.0',
-        LocalPort => $self->{LocalPort} // 8080
-    )
-        || die "Can't start server: $!";
-    warn "Сервер: ", $d->url, "\n";
+    $args{testit} && return { render => undef, data => {} };
 
-    $SIG{INT} = sub { close($d) if $d; exit; };
+    return { render => 'TT',  data => {}, template => lib::abs::path('../../templates/search.html')  };
+};
 
-    while (my $c = $d->accept) {
-        while (my $r = $c->get_request) {
-            my $resp = $self->handle_request($r, render => 'TT');
-            $c->send_response($resp);
-        }
-        $c->close;
-        undef($c);
-    }
-}
 
-END { $d && warn "Bye...\n" && close($d) };
 
 1;

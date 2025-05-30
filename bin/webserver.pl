@@ -1,6 +1,6 @@
 use strict;
 use warnings;
 use lib::abs '../lib';
-use GPBExim::View;
+use GPBExim::App;
 
-GPBExim::View->new(LocalPort => 8080)->start();
+GPBExim::App->new(LocalPort => 8080)->start();
