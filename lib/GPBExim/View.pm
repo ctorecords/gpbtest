@@ -30,10 +30,10 @@ sub handle_request {
     my $tt = Template->new(TRIM => 1, ABSOLUTE => 1);
 
     if ($method eq 'GET' && $path eq "/") {
-        $tt_template_path = lib::abs::path('../../templates/search.tt2');
+        $tt_template_path = lib::abs::path('../../templates/search.html');
 
     } elsif ($method eq 'POST' && $path eq "/search") {
-        $tt_template_path = lib::abs::path('../../templates/search.tt2');
+        $tt_template_path = lib::abs::path('../../templates/search.html');
 
         my $json_text = $r->content;
         my $rdata = eval { decode_json($json_text) };
