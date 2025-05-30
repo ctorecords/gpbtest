@@ -6,7 +6,12 @@ use GPBExim::Controller;
 my $model;
 my $controller;
 
-$model = GPBExim::get_model('SQLite3::File')
+$model = GPBExim::get_model('MySQL',
+        rm_xapian_db_on_destroy => 0,
+        rm_xapian_db_on_init    => 1,
+        clear_db_on_init        => 1,
+        clear_db_on_destroy     => 0,
+)
     ->setup_schema();
 $controller = GPBExim::Controller->new();
 

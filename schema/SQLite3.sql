@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS message_bounce (
     int_id CHAR(16) NOT NULL,
     address_id INTEGER REFERENCES message_address(id),
     o_id CHAR(16) NOT NULL,
-    str TEXT
+    str VARCHAR NOT NULL
 );
 CREATE INDEX IF NOT EXISTS message_bounce_created_idx ON message_bounce (created);
 
@@ -36,7 +36,7 @@ CREATE INDEX IF NOT EXISTS message_int_id_idx ON message (int_id);
 CREATE TABLE IF NOT EXISTS log (
     created TIMESTAMP(0) NOT NULL,
     int_id CHAR(16) NOT NULL,
-    str VARCHAR,
+    str VARCHAR NOT NULL,
     address_id INTEGER REFERENCES message_address(id),
     o_id int NOT NULL
 );

@@ -11,6 +11,7 @@ WriteMakefile(
     PREREQ_PM    => {
         'DBI'        => 0,
         'DBD::SQLite'=> 0,
+        'DBD::mysql' => 0, # не забыть "apt-get install libmysqlclient-dev"
         'Test::More'            => 0,
         'lib::abs'              => 0,
         'uni::perl'             => 0,

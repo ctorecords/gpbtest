@@ -6,7 +6,7 @@ use lib::abs;
 sub new {
     my $pkg = shift;
     my $self = bless {
-        max_chunks => 1024,
+        max_chunks => 1024*1024,
         chunk_size => 1024*1024*10,
 
         @_

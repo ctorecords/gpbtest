@@ -15,11 +15,26 @@ sub init {
     $self->{dbfile} = lib::abs::path('../../../../temp/sqlite3.db');
     $self->{schemafile} //= lib::abs::path('../../../schema/SQLite3.sql');
 
-    if ($self->{rm_dbfile_on_init} and -e $self->{dbfile}) {
+    if ($self->{clear_db_on_init} and -e $self->{dbfile}) {
         unlink $self->{dbfile} or warn "Failed to remove file $self->{dbfile}: $!";
     }
 
     return $self;
 }
+
+sub DESTROY {
+    my $self = shift;
+
+    if (my $super_destroy = $self->can('SUPER::DESTROY')) {
+        $self->$super_destroy();
+    }
+
+    # Опционально — удаление файла БД
+    if ($self->{clear_db_on_destroy} and -e $self->{dbfile}) {
+        unlink $self->{dbfile} or warn "Failed to remove file $self->{dbfile}: $!";
+    }
+
+}
+
 
 1;

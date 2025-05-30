@@ -38,15 +38,18 @@ sub test_parse_chunk {
     my $hash  = shift;
     my %args  = (
         model_type => 'SQLite3::Memory',
-        rm_xapian_db_on_destroy => 0,
-        rm_xapian_db_on_init    => 0,
+        rm_xapian_db_on_destroy => 1,
+        rm_xapian_db_on_init    => 1,
+        clear_db_on_init        => 1,
+        clear_db_on_destroy     => 1,
         @_
     );
-
 
     my $m = GPBExim::get_model($args{model_type},
         rm_xapian_db_on_destroy => $args{rm_xapian_db_on_destroy},
         rm_xapian_db_on_init    => $args{rm_xapian_db_on_init},
+        clear_db_on_init        => $args{clear_db_on_init},
+        clear_db_on_destroy     => $args{clear_db_on_destroy},
     )->setup_schema();
     my $v = GPBExim::View->new(model => $m);
     my $c = GPBExim::Controller->new();
@@ -88,24 +91,27 @@ sub test_parse_logfile {
     my $search_expected = shift;
     my %args  = (
         model_type => 'SQLite3::Memory',
-        rm_xapian_db_on_destroy=> 1,
-        rm_xapian_db_on_init =>   1,
-        rm_dbfile_on_init =>      1,
+        rm_xapian_db_on_destroy => 1,
+        rm_xapian_db_on_init    => 1,
+        clear_db_on_init        => 1,
+        clear_db_on_destroy     => 1,
         @_
     );
 
     my $m = GPBExim::get_model($args{model_type},
         rm_xapian_db_on_destroy => $args{rm_xapian_db_on_destroy},
         rm_xapian_db_on_init    => $args{rm_xapian_db_on_init},
-        rm_dbfile_on_init       => $args{rm_dbfile_on_init},
+        clear_db_on_init        => $args{clear_db_on_init},
+        clear_db_on_destroy     => $args{clear_db_on_destroy},
     )->setup_schema();
     my $v = GPBExim::View->new(model => $m);
-    my $c = GPBExim::Controller->new();
+    my $c = GPBExim::Controller->new(chunk_size=>1024*1024*1024);
 
     $fname and $c->parse_logfile($fname => $m);
 
     for my $s (keys %$search_expected) {
         my $got = $v->handle_request(cq($s), testit => 1);
+        warn dumper($got);
         is_deeply($got, $search_expected->{$s}, encode('UTF-8', "$title: $s"));
     }
 }
@@ -117,14 +123,18 @@ sub test_search {
     my $expected   = shift;
     my %args  = (
         model_type => 'SQLite3::Memory',
-        rm_xapian_db_on_destroy => 0,
-        rm_xapian_db_on_init    => 0,
+        rm_xapian_db_on_destroy => 1,
+        rm_xapian_db_on_init    => 1,
+        clear_db_on_init        => 1,
+        clear_db_on_destroy     => 1,
         @_
     );
 
     my $m = GPBExim::get_model($args{model_type},
         rm_xapian_db_on_destroy => $args{rm_xapian_db_on_destroy},
         rm_xapian_db_on_init    => $args{rm_xapian_db_on_init},
+        clear_db_on_init        => $args{clear_db_on_init},
+        clear_db_on_destroy     => $args{clear_db_on_destroy},
     )->setup_schema();
     my $v = GPBExim::View->new(model => $m);
     my $c = GPBExim::Controller->new();

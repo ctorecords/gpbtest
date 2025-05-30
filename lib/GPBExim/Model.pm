@@ -16,7 +16,7 @@ sub new {
     my $pkg = shift;
     my $self = bless { @_ }, $pkg;
 
-    $self->init();
+    $self->init(@_);
     $self->setup_dbh();
 
     return $self;
@@ -50,11 +50,44 @@ sub init {
 sub setup_schema {
     my $self = shift;
 
-    my $sql = do { local(@ARGV, $/) = $self->{schemafile}; <> }; # подгрузим sql
-    $sql =~ s/--.+//g; # исключим комментарии
-    $sql =~ s/\$OIDSTART/$self->{oidstart}/g; # подменим константу
-    #print $sql, $/ x 2;
-    $self->{dbh}->do($_) for split /;/, $sql;
+    my $sql = do {
+        local(@ARGV, $/) = $self->{schemafile};
+        <>;
+    };
+
+    $sql =~ s/--.+//g;                    # удалим SQL-комментарии
+    $sql =~ s/\$OIDSTART/$self->{oidstart}/g;
+
+    my $dbh     = $self->{dbh};
+    my $schema  = $self->{dbname} || 'gpbexim'; # имя схемы, можно адаптировать
+    my @stmts   = split /;/, $sql;
+
+    my $pkg = ref($self);
+    my $is_mysql = $pkg =~ /Model::MySQL$/;
+
+    for my $stmt (@stmts) {
+        $stmt =~ s/^\s+|\s+$//g;
+        next unless $stmt;
+
+        if ($is_mysql && $stmt =~ /^CREATE\s+INDEX\s+(\w+)\s+ON\s+(\w+)\s*\(/i) {
+            my ($index_name, $table_name) = ($1, $2);
+
+            my $exists = $dbh->selectrow_array(
+                "SELECT COUNT(*) FROM information_schema.statistics
+                 WHERE table_schema = ? AND table_name = ? AND index_name = ?",
+                undef, $schema, $table_name, $index_name
+            );
+
+            if ($exists) {
+                #warn "Index $index_name on $table_name already exists, skipping\n";
+                next;
+            } else {
+                #warn "Creating index $index_name on $table_name\n";
+            }
+        }
+
+        $dbh->do($stmt);
+    }
 
     return $self;
 }
@@ -198,7 +231,7 @@ sub search_id_by_email_substring {
     );
 
     my $results = $self->search_by_email_substring($substring, %args);
-    return [keys %$results];
+    return [sort keys %$results];
 }
 
 sub search_email_by_email_substring {
@@ -216,6 +249,7 @@ sub search_email_by_email_substring {
 
 sub DESTROY {
     my $self = shift;
+    #$self->SUPER::DESTROY(@_);
     if ($self->{rm_xapian_db_on_destroy} and $self->{xapian_dir} and -d $self->{xapian_dir}) {
         delete $self->{xapian_db};
         remove_tree($self->{xapian_dir}, { error => \my $err });
@@ -223,6 +257,11 @@ sub DESTROY {
             warn "Failed to remove Xapian index at $self->{xapian_dir}: @$err\n";
         }
     };
+    # Опционально — удаление файла БД
+    if ($self->{clear_db_on_init} and -e $self->{dbfile}) {
+        unlink $self->{dbfile} or warn "Failed to remove file $self->{dbfile}: $!";
+    }
+
 }
 
 1;

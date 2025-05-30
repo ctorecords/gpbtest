@@ -127,7 +127,7 @@ sub new {
     );
 
     my $self = bless {  %args }, $pkg;
-    $self->{model} //= GPBExim::get_model('SQLite3::File');
+    $self->{model} //= GPBExim::get_model('MySQL');
 
     return $self;
 }
