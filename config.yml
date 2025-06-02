@@ -24,3 +24,4 @@ ui:
   max_results: 100
   server_port: 8080
   server_host: "0.0.0.0"
+  template_path: 'templates/search.html'

@@ -31,9 +31,6 @@ sub handle_request {
     my %args = @_;
 
     my $m = $self->{model};
-
-    my $tt_template;
-    my $tt_template_path = lib::abs::path('../../templates/search.html');
     my $return = { data => {} };
 
     my ($method, $path, $content) = ($r->method, $r->uri->path, $r->content);
@@ -151,7 +148,7 @@ sub root {
 
     $args{testit} && return { render => undef, data => {} };
 
-    return { render => 'TT',  data => { max_results => $self->{cfg}{max_results} }, template => lib::abs::path('../../templates/search.html')  };
+    return { render => 'TT',  data => { max_results => $self->{cfg}{max_results} }, template => $self->{cfg}{ui}{template_path}  };
 };
 
 
