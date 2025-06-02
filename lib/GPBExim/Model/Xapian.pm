@@ -12,17 +12,16 @@ sub new {
 
     $self->{cfg} = GPBExim::Config->get();
 
-    my $default_xapian_dir = $self->{cfg}{xapian}{path};
-    $self->{xapian_dir} = $default_xapian_dir;
-    if ($self->{rm_xapian_db_on_init} and $self->{xapian_dir} and -d $self->{xapian_dir}) {
+    if ($self->{rm_xapian_db_on_init} and $self->{cfg}{xapian}{path} and -d $self->{cfg}{xapian}{path}) {
         delete $self->{xapian_db};
-        remove_tree($self->{xapian_dir}, { error => \my $err });
+        delete $self->{indexed_xapian_email};
+        remove_tree($self->{cfg}{xapian}{path}, { error => \my $err });
         if (@$err) {
-            warn "Failed to remove Xapian index at $self->{xapian_dir}: @$err\n";
+            warn "Failed to remove Xapian index at $self->{cfg}{xapian}{path}: @$err\n";
         }
     };
     $self->{xapian_db}  = Search::Xapian::WritableDatabase->new(
-        $self->{xapian_dir},
+        $self->{cfg}{xapian}{path},
         Search::Xapian::DB_CREATE_OR_OPEN
     );
     $self->{xapian_max_search_result} = $self->{cfg}{xapian}{max_results};
@@ -67,7 +66,7 @@ sub search_by_email_substring {
     );
     croak "substring is required" unless defined $substring;
 
-    my $query = Search::Xapian::Query->new("N$substring");
+    my $query   = Search::Xapian::Query->new("N$substring");
     my $enquire = Search::Xapian::Enquire->new($self->{xapian_db});
     $enquire->set_query($query);
 
@@ -114,9 +113,10 @@ sub destroy {
 
     if ($self->{cfg}{xapian}{clear_db_on_destroy} and $self->{cfg}{xapian}{path} and -d $self->{cfg}{xapian}{path}) {
         delete $self->{xapian_db};
+        delete $self->{indexed_xapian_email};
         remove_tree($self->{cfg}{xapian}{path}, { error => \my $err });
         if (@$err) {
-            warn "Failed to remove Xapian index at $self->{xapian_dir}: @$err\n";
+            warn "Failed to remove Xapian index at $self->{cfg}{xapian}{path}: @$err\n";
         }
     };
 
