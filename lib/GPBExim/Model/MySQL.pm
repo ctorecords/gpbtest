@@ -16,12 +16,12 @@ sub init {
 
     $self->SUPER::init(@_);
 
-    $self->{host}     //= '127.0.0.1';
-    $self->{port}     //= 3306;
-    $self->{user}     //= 'root';
-    $self->{password} //= 'SuperStrongPass!';
-    $self->{dbname}   //= 'gpbexim';
-    $self->{schemafile} //= lib::abs::path('../../../schema/MySQL.sql');
+    $self->{host}     //= $self->{cfg}{db}{host};
+    $self->{port}     //= $self->{cfg}{db}{port};
+    $self->{user}     //= $self->{cfg}{db}{user};
+    $self->{password} //= $self->{cfg}{db}{password};
+    $self->{dbname}   //= $self->{cfg}{db}{name};
+    $self->{schemafile} //= $self->{cfg}{db}{schema_path};
 
     # DSN формируется из параметров
     $self->{dsn} = "DBI:mysql:database=$self->{dbname};host=$self->{host};port=$self->{port}";
