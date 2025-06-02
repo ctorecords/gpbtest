@@ -45,7 +45,7 @@ sub _resolve_paths {
 
 sub _find_config_file {
     my @filenames = qw(config.yaml config.yml config.json config.pl);
-    my $start_dir = _get_start_dir();
+    my $start_dir = dirname(abs_path($0));
 
     while ($start_dir) {
         foreach my $file (@filenames) {
@@ -59,10 +59,6 @@ sub _find_config_file {
     }
 
     croak "Конфигурационный файл не найден (искали вверх от точки запуска среди: @filenames)";
-}
-
-sub _get_start_dir {
-    return dirname(abs_path($0));
 }
 
 1;
