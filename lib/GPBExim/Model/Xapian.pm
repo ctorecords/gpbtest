@@ -112,9 +112,9 @@ sub search_email_by_email_substring {
 sub destroy {
     my $self = shift;
 
-    if ($self->{cfg}{clear_db_on_destroy} and $self->{cfg}{xapian_dir} and -d $self->{cfg}{xapian_dir}) {
+    if ($self->{cfg}{xapian}{clear_db_on_destroy} and $self->{cfg}{xapian}{path} and -d $self->{cfg}{xapian}{path}) {
         delete $self->{xapian_db};
-        remove_tree($self->{cfg}{xapian_dir}, { error => \my $err });
+        remove_tree($self->{cfg}{xapian}{path}, { error => \my $err });
         if (@$err) {
             warn "Failed to remove Xapian index at $self->{xapian_dir}: @$err\n";
         }
