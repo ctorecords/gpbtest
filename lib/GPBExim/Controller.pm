@@ -64,48 +64,7 @@ sub parse_chunk {
     my $chunk = shift;
     my %args = @_;
 
-    my %_sth = (
-        insert_log            => qq{ insert into log (created, int_id, str, address_id, o_id) values(?, ?, ?, ?, ?) },
-        insert_message        => qq{ insert into message (id, created, int_id, str, address_id, o_id) values(?, ?, ?, ?, ?, ?) },
-        insert_message_bounce => qq{ insert into message_bounce (created, int_id, address_id, str, o_id) values(?, ?, ?, ?, ?) },
-        insert_address        => qq{ insert into message_address (created, address) values(?, ?) },
-
-        get_message_by_id     => qq{ select id, created, int_id, str from message where id=? },
-        get_address_by_email  => qq{ select id, created, address from message_address where address=? },
-
-        get_message_and_log_by_int_id => qq{
-            select
-                created as created,
-                address_id as address_id,
-                str as str,
-                o_id
-            from log
-            where  int_id=?
-
-            union
-
-            select
-                created as created,
-                address_id as address_id,
-                str as str,
-                o_id
-            from message
-            where  int_id=?
-
-            order by o_id desc
-        },
-        get_log_by_all => qq{
-            select
-                log.created,
-                log.int_id,
-                log.str,
-                log.address_id
-            from log
-            where  log.int_id=? and created=? and str=? and address_id=?
-        },
-
-    );
-    $self->{sth}={ map { $_ => $model->{dbh}->prepare_cached($_sth{$_}) } keys %_sth };
+    $model->sql_prepare;
 
     my @lines = split /\n/, $chunk;
     my $lines_count = @lines;
@@ -119,12 +78,12 @@ sub parse_chunk {
             # проверим, что email есть в таблице messaage_address и в кешируем хеше $self->{emails}
             my ($address_id);
             if ($email and !$self->{emails}{$email}) {
-                $self->{sth}{get_address_by_email}->execute($email)
-                    or die $self->{sth}{get_address_by_email}->errstr;
-                my $address = $self->{sth}{get_address_by_email}->fetchrow_hashref();
+                $model->{sth}{get_address_by_email}->execute($email)
+                    or die $model->{sth}{get_address_by_email}->errstr;
+                my $address = $model->{sth}{get_address_by_email}->fetchrow_hashref();
                 if (!$address) {
-                    $self->{sth}{insert_address}->execute($datetime, $email)
-                        or die $self->{sth}{insert_address}->errstr;
+                    $model->{sth}{insert_address}->execute($datetime, $email)
+                        or die $model->{sth}{insert_address}->errstr;
                     $self->{emails}{$email}= $address_id = $model->{dbh}->last_insert_id;
                     $model->{xapian}->index_address_at_xapian($email => $address_id);
                 }
@@ -143,47 +102,47 @@ sub parse_chunk {
                     # обеспечим идемпотентность (при повторном "проигрывании" лога записи в БД не дублируем)
                     # здесь для демонстрации показываем обеспечение на уровне логики в perl.
                     # В других местах покажу решение на уровне sql
-                    $self->{sth}{get_message_by_id}->execute($id)
-                        or die $self->{sth}{get_message_by_id}->errstr;
-                    my @message = $self->{sth}{get_message_by_id}->fetchrow_array;
+                    $model->{sth}{get_message_by_id}->execute($id)
+                        or die $model->{sth}{get_message_by_id}->errstr;
+                    my @message = $model->{sth}{get_message_by_id}->fetchrow_array;
                     if (!@message) {
-                        $self->{sth}{insert_message}->execute($id, $datetime, $int_id, $stripped_line, $address_id, $model->get_next_o_id)
-                            or die $self->{sth}{insert_message}->errstr;
+                        $model->{sth}{insert_message}->execute($id, $datetime, $int_id, $stripped_line, $address_id, $model->get_next_o_id)
+                            or die $model->{sth}{insert_message}->errstr;
                     };
                 }
                 else {
                     # выделим ссылку int_id из переменной R= и попытаемся найти в БД строки с int_id.
                     my $rel_int_id; ($rel_int_id) = $other =~ /R=([^\s]+)/;
 
-                    $self->{sth}{get_message_and_log_by_int_id}->execute($rel_int_id, $rel_int_id)
-                        or die $self->{sth}{get_message_and_log_by_int_id}->errstr;
-                    my $rows = $self->{sth}{get_message_and_log_by_int_id}->fetchall_arrayref({});
+                    $model->{sth}{get_message_and_log_by_int_id}->execute($rel_int_id, $rel_int_id)
+                        or die $model->{sth}{get_message_and_log_by_int_id}->errstr;
+                    my $rows = $model->{sth}{get_message_and_log_by_int_id}->fetchall_arrayref({});
 
                     my $email_found_for_bounce;
                     EMAILSEARCH: for my $row (@$rows) {
                         if ($row->{address_id}) {
                             $email_found_for_bounce = 1;
-                            $self->{sth}{insert_message_bounce}->execute($datetime, $int_id, $row->{address_id}, $stripped_line, $model->get_next_o_id)
-                                or die $self->{sth}{insert_message_bounce}->errstr;
+                            $model->{sth}{insert_message_bounce}->execute($datetime, $int_id, $row->{address_id}, $stripped_line, $model->get_next_o_id)
+                                or die $model->{sth}{insert_message_bounce}->errstr;
                             last EMAILSEARCH;
                         }
                     }
                     # если email для bounce не определён, то кидаем его бед address_id на случай,
                     # когда в будущем в логе докинут данные по нему
                     if (!$email_found_for_bounce) {
-                        $self->{sth}{insert_message_bounce}->execute($datetime, $int_id, undef, $stripped_line, $model->get_next_o_id)
-                            or die $self->{sth}{insert_message_bounce}->errstr;
+                        $model->{sth}{insert_message_bounce}->execute($datetime, $int_id, undef, $stripped_line, $model->get_next_o_id)
+                            or die $model->{sth}{insert_message_bounce}->errstr;
                     }
                 }
             }
             # все остальные записи кидаем в лог
             else {
-                $self->{sth}{get_log_by_all}->execute($int_id, $datetime, $stripped_line, $address_id)
-                    or die $self->{sth}{get_log_by_all}->errstr;
-                my $log = $self->{sth}{get_log_by_all}->fetchall_arrayref({});
+                $model->{sth}{get_log_by_all}->execute($int_id, $datetime, $stripped_line, $address_id)
+                    or die $model->{sth}{get_log_by_all}->errstr;
+                my $log = $model->{sth}{get_log_by_all}->fetchall_arrayref({});
                 if (!@$log) {
-                    $self->{sth}{insert_log}->execute($datetime, $int_id, $stripped_line, $address_id, $model->get_next_o_id)
-                        or die $self->{sth}{insert_log}->errstr;
+                    $model->{sth}{insert_log}->execute($datetime, $int_id, $stripped_line, $address_id, $model->get_next_o_id)
+                        or die $model->{sth}{insert_log}->errstr;
                 }
             }
         }
@@ -229,14 +188,6 @@ sub get_next_chunk_from_log {
     seek($fh, $pos_before, 0) or warn "Seek назад не удался: $!";
     warn "Длинная строка без новой строки — ".$self->{chunk_size}." байт проигнорированы";
     return undef;
-}
-
-
-sub DESTROY {
-    my $self = shift;
-
-    # зафинишим все стейтменты
-    $_->finish() for (values %{$self->{sth}});
 }
 
 1;

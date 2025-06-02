@@ -138,8 +138,59 @@ sub get_rows_on_address_id {
     return $return;
 }
 
+sub sql_prepare {
+    my $self = shift;
+
+    my %_sth = (
+        insert_log            => qq{ insert into log (created, int_id, str, address_id, o_id) values(?, ?, ?, ?, ?) },
+        insert_message        => qq{ insert into message (id, created, int_id, str, address_id, o_id) values(?, ?, ?, ?, ?, ?) },
+        insert_message_bounce => qq{ insert into message_bounce (created, int_id, address_id, str, o_id) values(?, ?, ?, ?, ?) },
+        insert_address        => qq{ insert into message_address (created, address) values(?, ?) },
+
+        get_message_by_id     => qq{ select id, created, int_id, str from message where id=? },
+        get_address_by_email  => qq{ select id, created, address from message_address where address=? },
+
+        get_message_and_log_by_int_id => qq{
+            select
+                created as created,
+                address_id as address_id,
+                str as str,
+                o_id
+            from log
+            where  int_id=?
+
+            union
+
+            select
+                created as created,
+                address_id as address_id,
+                str as str,
+                o_id
+            from message
+            where  int_id=?
+
+            order by o_id desc
+        },
+        get_log_by_all => qq{
+            select
+                log.created,
+                log.int_id,
+                log.str,
+                log.address_id
+            from log
+            where  log.int_id=? and created=? and str=? and address_id=?
+        },
+
+    );
+
+    $self->{sth}={ map { $_ => $self->{dbh}->prepare_cached($_sth{$_}) } keys %_sth };
+}
+
 sub DESTROY {
     my $self = shift;
+
+    # зафинишим все стейтменты
+    $_->finish() for (values %{$self->{sth}});
 
     $self->{xapian}->destroy();
 
