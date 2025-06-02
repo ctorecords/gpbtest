@@ -83,7 +83,7 @@ sub DESTROY {
     }
 
     # Опционально — удаление файла БД
-    if ($self->{clear_db_on_destroy}) {
+    if ($self->{cfg}{db}{clear_db_on_destroy}) {
         $self->clear_all_tables;
     }
 
