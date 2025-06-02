@@ -15,13 +15,10 @@ our $d;
 
 sub new {
     my $pkg  = shift;
-    my %args = (
-        LocalPort => 8080,
-        @_,
-    );
 
-    my $self = bless {  %args }, $pkg;
-    $self->start(%args);
+    my $self = bless {  @_ }, $pkg;
+    $self->{cfg} = GPBExim::Config->get();
+    $self->start;
 
     return $self;
 }
@@ -30,28 +27,24 @@ sub start {
     my $self = shift;
 
     my %args  = (
-        model_type => 'MySQL',
-        rm_xapian_db_on_destroy => 0,
-        rm_xapian_db_on_init    => 0,
-        clear_db_on_init        => 0,
-        clear_db_on_destroy     => 0,
-        @_
+        model_type              => $self->{cfg}{db}{model_type},
+        rm_xapian_db_on_destroy => $self->{cfg}{xapian}{clear_db_on_destroy},
+        rm_xapian_db_on_init    => $self->{cfg}{xapian}{clear_db_on_init},
+        clear_db_on_destroy     => $self->{cfg}{db}{clear_db_on_destroy},
+        clear_db_on_init        => $self->{cfg}{db}{clear_db_on_init},
     );
 
-    my $m = GPBExim::get_model($args{model_type},
-        rm_xapian_db_on_destroy => $args{rm_xapian_db_on_destroy},
-        rm_xapian_db_on_init    => $args{rm_xapian_db_on_init},
-        clear_db_on_init        => $args{clear_db_on_init},
-        clear_db_on_destroy     => $args{clear_db_on_destroy},
-    )->setup_schema();
+    my $m = GPBExim::get_model($args{model_type} // $self->{cfg}{db}{model_type}, %args)->setup_schema();
     my $v = GPBExim::View->new(model => $m);
     my $c = GPBExim::Controller->new();
 
-    $d = HTTP::Daemon->new(
-        LocalAddr => '0.0.0.0',
-        LocalPort => $self->{LocalPort} // 8080
-    )
-        || die "Can't start server: $!";
+    my %connect = (
+        LocalAddr => $self->{LocalHost} // $self->{cfg}{ui}{server_host},
+        LocalPort => $self->{LocalPort} // $self->{cfg}{ui}{server_port}
+    );
+    $d = HTTP::Daemon->new( %connect )
+        || die "Can't start server on $connect{host}:$connect{port}: $!";
+
     warn "Сервер: ", $d->url, "\n";
 
     $SIG{INT} = sub { warn "Bye...\n"; close($d) if $d; exit; };
