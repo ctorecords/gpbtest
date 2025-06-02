@@ -1,7 +1,7 @@
 use Test::More;
-use lib::abs '../lib';
+use lib::abs 'lib';
 use uni::perl ':dumper';
-use GPBExim::Test qw(test_parse_line test_parse_chunk);
+use GPBExim::TestHelper qw(test_parse_line test_parse_chunk);
 
 
 test_parse_line ( 'Проверка парсера регэкспом строки с ошибкой Too many mails (mail bomb)' =>
@@ -68,7 +68,7 @@ test_parse_line ( 'Проверка парсера регэкспом строк
     }
 );
 
-test_parse_chunk( "4 lines [$_]" => join(' ',
+test_parse_chunk( "4 lines" => join(' ',
         q{2012-02-13 14:39:22},
         q{1RookS-000Pg8-VO == udbbwscdnbegrmloghuf@london.com},
         q{R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>:},
@@ -105,11 +105,10 @@ test_parse_chunk( "4 lines [$_]" => join(' ',
 
         ]
     },
-    rm_xapian_db_on_destroy => 1, rm_xapian_db_on_init => 1, clear_db_on_init => 1, clear_db_on_destroy => 1, model_type => $_,
-) for (qw/SQLite3::Memory MySQL/);
+);
 
 
-test_parse_chunk( "Простая группа строк с успешной отправкой  [$_]" => join("\n",
+test_parse_chunk( "Простая группа строк с успешной отправкой" => join("\n",
         q{2012-02-13 14:46:10 1RwtQA-000Mti-P5 <= ysxeuila@rushost.ru H=rtmail.rushost.ru [109.70.26.4] P=esmtp S=3211 id=rt-3.8.8-21135-1329129970-559.3914282-6-0@rushost.ru},
         q{2012-02-13 14:46:10 1RwtQA-000Mti-P5 == ijcxzetfsijoedyg@hsrail.ru R=dnslookup T=remote_smtp defer (-1): domain matches queue_smtp_domains, or -odqs set},
         q{2012-02-13 14:46:14 1RwtQA-000Mti-P5 => ijcxzetfsijoedyg@hsrail.ru R=dnslookup T=remote_smtp H=mx.hsrail.ru [213.33.220.238] C="250 2.6.0  <tiraramrjynnyexlzbjmsiobtgwwsitbvgnatrbtid@rushost.ru> Queued mail for delivery"},
@@ -139,7 +138,6 @@ test_parse_chunk( "Простая группа строк с успешной о
 
         ]
     },
-    rm_xapian_db_on_destroy => 1, rm_xapian_db_on_init => 1, clear_db_on_init => 1, clear_db_on_destroy => 1, model_type => $_,
-) for (qw/SQLite3::Memory  MySQL/);
+);
 
 done_testing;

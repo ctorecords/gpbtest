@@ -1,13 +1,14 @@
-package GPBExim::Test;
+package GPBExim::TestHelper;
 
 use Test::More;
 use JSON::XS;
 
 use uni::perl ':dumper';
-use lib::abs '../../lib';
+use lib::abs '../../../lib';
 use GPBExim;
 use GPBExim::Controller;
 use GPBExim::View;
+use GPBExim::Config;
 use HTTP::Request;
 use JSON::XS;
 use Encode qw(encode);
@@ -36,12 +37,13 @@ sub test_parse_chunk {
     my $title = shift;
     my $chunk = shift;
     my $hash  = shift;
+    my $cfg = GPBExim::Config->get();
     my %args  = (
-        model_type => 'SQLite3::Memory',
-        rm_xapian_db_on_destroy => 1,
-        rm_xapian_db_on_init    => 1,
-        clear_db_on_init        => 1,
-        clear_db_on_destroy     => 1,
+        model_type => $cfg->{db}{model_type},
+        rm_xapian_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
+        rm_xapian_db_on_init    => $cfg->{xapian}{clear_db_on_init},
+        clear_db_on_init        => $cfg->{db}{clear_db_on_init},
+        clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
         @_
     );
 
@@ -89,12 +91,13 @@ sub test_parse_logfile {
     my $title    = shift;
     my $fname    = shift;
     my $search_expected = shift;
+    my $cfg = GPBExim::Config->get();
     my %args  = (
-        model_type => 'SQLite3::Memory',
-        rm_xapian_db_on_destroy => 1,
-        rm_xapian_db_on_init    => 1,
-        clear_db_on_init        => 1,
-        clear_db_on_destroy     => 1,
+        model_type => $cfg->{db}{model_type},
+        rm_xapian_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
+        rm_xapian_db_on_init    => $cfg->{xapian}{clear_db_on_init},
+        clear_db_on_init        => $cfg->{db}{clear_db_on_init},
+        clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
         @_
     );
 
@@ -120,12 +123,13 @@ sub test_search {
     my $chunk  = shift;
     my $search = shift;
     my $expected   = shift;
+    my $cfg = GPBExim::Config->get();
     my %args  = (
-        model_type => 'SQLite3::Memory',
-        rm_xapian_db_on_destroy => 1,
-        rm_xapian_db_on_init    => 1,
-        clear_db_on_init        => 1,
-        clear_db_on_destroy     => 1,
+        model_type => $cfg->{db}{model_type},
+        rm_xapian_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
+        rm_xapian_db_on_init    => $cfg->{xapian}{clear_db_on_init},
+        clear_db_on_init        => $cfg->{db}{clear_db_on_init},
+        clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
         @_
     );
 

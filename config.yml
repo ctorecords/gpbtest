@@ -1,0 +1,21 @@
+---
+db:
+  clear_db_on_init: 0       # чистка БД перед тестом
+  clear_db_on_destroy: 0    # чистка БД после теста
+  model_type: MySQL
+  name: gpbexim
+
+  # путь от файла конфига
+  schema_path: schema/MySQL.sql
+
+xapian:
+  path: temp/xapian_ui
+  min: 3  # минимальное количество символов для N-грамм
+  max_results: 1000
+  oid_start: 0
+  clear_db_on_init: 0       # чистка перед работой
+  clear_db_on_init: 0       # чистка после работы
+
+ui:
+  max_results: 100
+  server_port: 8080

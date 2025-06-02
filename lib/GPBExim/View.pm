@@ -11,6 +11,7 @@ use JSON::XS;
 
 use lib::abs '../../lib';
 use GPBExim;
+use GPBExim::Config;
 
 sub new {
     my $pkg  = shift;
@@ -19,6 +20,7 @@ sub new {
     );
 
     my $self = bless {  %args }, $pkg;
+    $self->{cfg} = GPBExim::Config->get();
 
     return $self;
 }
@@ -129,12 +131,13 @@ sub search {
     return $return if (!@$ids);
 
     # получим данные строчек log и message, связанных с этими адресами
-    $return->{data} = $m->get_rows_on_address_id([qw/log message/], $ids);
+    $return->{data} = $m->get_rows_on_address_id([qw/log message/], $ids,
+        limit => $self->{cfg}{ui}{max_results}+1);
 
     # если строчек больше лимита, то последний 101й элемент пометим
-    if (defined $return->{data}->[100]) {
-        $return->{data}->[99]{continue} = 1;
-        splice @{ $return->{data} }, 100, 1;
+    if (defined $return->{data}->[$self->{cfg}{ui}{max_results}]) {
+        $return->{data}->[$self->{cfg}{ui}{max_results}-1]{continue} = 1;
+        splice @{ $return->{data} }, $self->{cfg}{ui}{max_results}, 1;
     };
 
     return $return;
@@ -148,7 +151,7 @@ sub root {
 
     $args{testit} && return { render => undef, data => {} };
 
-    return { render => 'TT',  data => {}, template => lib::abs::path('../../templates/search.html')  };
+    return { render => 'TT',  data => { max_results => $self->{cfg}{max_results} }, template => lib::abs::path('../../templates/search.html')  };
 };
 
 

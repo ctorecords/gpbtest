@@ -1,7 +1,7 @@
 use Test::More;
-use lib::abs '../lib';
+use lib::abs 'lib';
 use uni::perl ':dumper';
-use GPBExim::Test qw(test_search cq);
+use GPBExim::TestHelper qw(test_search cq);
 
 my $domain = 'london.com';
 my $search; $search="fwxvparobkymnbyemevz\@$domain";
@@ -20,7 +20,6 @@ test_search("Search for email '$search' with bounce" =>
     t => "log", o_id => 2, int_id => "1RookS-000Pg8-VO", created => '2012-02-13 14:39:22',
     str => "1RookS-000Pg8-VO ** $search: retry timeout exceeded",
   }]},
-    rm_xapian_db_on_destroy => 1, rm_xapian_db_on_init => 1, clear_db_on_init => 1, clear_db_on_destroy => 1, model_type => 'SQLite3::Memory',
 );
 
 test_search("Search for email '$domain' with bounce" =>
@@ -43,7 +42,6 @@ test_search("Search for email '$domain' with bounce" =>
     str => "1RookS-000Pg8-VO ** fwxvparobkymnbyemevz\@$domain: retry timeout exceeded"
   },
   ]},
-    rm_xapian_db_on_destroy => 1, rm_xapian_db_on_init => 1, clear_db_on_init => 1, clear_db_on_destroy => 1, model_type => 'SQLite3::Memory',
 );
 
 

@@ -9,14 +9,13 @@ use JSON::XS;
 use Search::Xapian;
 use File::Path qw(remove_tree);
 use Scalar::Util::Numeric qw/isint/;
-
-our $DBFILE;
-our $SCHEMAFILE;
+use GPBExim::Config;
 
 sub new {
     my $pkg = shift;
     my $self = bless { @_ }, $pkg;
 
+    $self->{cfg} = GPBExim::Config->get();
     $self->init(@_);
     $self->setup_dbh();
 
@@ -27,7 +26,7 @@ sub init {
     my $self = shift;
 
     # Настройка xapian
-    my $default_xapian_dir = lib::abs::path('../../temp/xapian');
+    my $default_xapian_dir = $self->{cfg}{xapian}{path};
     $self->{xapian_dir} = $default_xapian_dir;
     if ($self->{rm_xapian_db_on_init} and $self->{xapian_dir} and -d $self->{xapian_dir}) {
         delete $self->{xapian_db};
@@ -40,9 +39,9 @@ sub init {
         $self->{xapian_dir},
         Search::Xapian::DB_CREATE_OR_OPEN
     );
-    $self->{xapian_max_search_result} = 100_000_000;
+    $self->{xapian_max_search_result} = $self->{cfg}{xapian}{max_results};
 
-    $self->{oidstart} = 0;
+    $self->{oidstart} = $self->{cfg}{xapian}{oid_start};
 
     return $self;
 
@@ -52,7 +51,7 @@ sub setup_schema {
     my $self = shift;
 
     my $sql = do {
-        local(@ARGV, $/) = $self->{schemafile};
+        local(@ARGV, $/) = $self->{cfg}{db}{schema_path};
         <>;
     };
 
@@ -60,12 +59,11 @@ sub setup_schema {
     $sql =~ s/\$OIDSTART/$self->{oidstart}/g;
 
     my $dbh     = $self->{dbh};
-    my $schema  = $self->{dbname} || 'gpbexim'; # имя схемы, можно адаптировать
+    my $schema  = $self->{cfg}{db}{name};
     my @stmts   = split /;/, $sql;
 
     my $pkg = ref($self);
-    my $is_mysql = $pkg =~ /Model::MySQL$/;
-
+    my $is_mysql = $self->{cfg}{db}{model_type} eq 'MySQL' ? 1 : 0;
     for my $stmt (@stmts) {
         $stmt =~ s/^\s+|\s+$//g;
         next unless $stmt;
@@ -139,8 +137,8 @@ sub get_rows_on_address_id {
     my %args     = @_;
 
     die "Limit is must by int" if defined ($args{limit}) && !isint($args{limit});
-    my $limit = delete $args{limit} // 101;
-    $limit =  100 if $limit > 101;
+    my $limit = delete $args{limit} // $self->{cfg}{ui}{max_results} + 1;
+    $limit =  $self->{cfg}{ui}{max_results} + 1 if $limit > $self->{cfg}{ui}{max_results} + 1;
 
     my $return = $self->{dbh}->selectall_arrayref(
             join (' union ',

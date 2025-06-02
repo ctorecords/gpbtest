@@ -8,7 +8,7 @@
 *.bs
 *.db
 .vscode/*
-temp/xapian
+temp/xapian*
 temp/*.log
 
 # Devel::Cover

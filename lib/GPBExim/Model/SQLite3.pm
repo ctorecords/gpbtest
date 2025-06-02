@@ -10,7 +10,7 @@ sub init {
     $self->SUPER::init(@_);
 
     $self->{dbfile} = ':memory:';
-    $self->{schemafile} //= lib::abs::path('../../../schema/SQLite3.sql');
+    $self->{schemafile} //= $self->{cfg}{db}{schema_path};
 }
 
 sub setup_dbh {
