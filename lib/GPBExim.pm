@@ -1,7 +1,5 @@
 package GPBExim;
 
-use strict;
-use warnings;
 use lib::abs '../lib';
 use uni::perl;
 
@@ -20,14 +18,6 @@ sub get_model {
     } or die "Ошибка загрузки модуля $db_module: $@";
 
     return $db_module->new(%args);
-}
-
-sub setup_schema {
-    my $dbh = shift;
-
-    my $sql = do { local(@ARGV, $/) = 'schema/SQLite3.sql'; <> };
-    $sql =~ s/--.+//g; # исключим комментарии
-    $dbh->do($_) for split /;/, $sql;
 }
 
 1;
