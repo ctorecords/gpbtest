@@ -100,7 +100,7 @@ sub suggest {
         or return $return;
 
     # получим список проиндексированных в Xapian e-mail адресов
-    my $emails = $m->search_email_by_email_substring($email);
+    my $emails = $m->{xapian}->search_email_by_email_substring($email);
     return $return if (!@$emails);
 
     push @{$return->{data}}, {address => $_} for @$emails;
@@ -127,7 +127,7 @@ sub search {
         or return $return;
 
     # получим список проиндексированных в Xapian e-mail адресов
-    my $ids = $m->search_id_by_email_substring($email);
+    my $ids = $m->{xapian}->search_id_by_email_substring($email);
     return $return if (!@$ids);
 
     # получим данные строчек log и message, связанных с этими адресами

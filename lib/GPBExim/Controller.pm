@@ -126,7 +126,7 @@ sub parse_chunk {
                     $self->{sth}{insert_address}->execute($datetime, $email)
                         or die $self->{sth}{insert_address}->errstr;
                     $self->{emails}{$email}= $address_id = $model->{dbh}->last_insert_id;
-                    $model->index_address_at_xapian($email => $address_id);
+                    $model->{xapian}->index_address_at_xapian($email => $address_id);
                 }
                 else {
                     $self->{emails}{$email}= $address_id = $address->{id};

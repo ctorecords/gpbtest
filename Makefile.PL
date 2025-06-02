@@ -21,6 +21,7 @@ WriteMakefile(
         'HTTP::Status'          => 0,
         'Scalar::Util::Numeric' => 0,
         'Config::Any'           => 0,
+        'Getopt::Long'          => 0,
     },
     test => { TESTS => 't/*.t' },
 );

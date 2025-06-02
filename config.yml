@@ -13,8 +13,8 @@ xapian:
   min: 3  # минимальное количество символов для N-грамм
   max_results: 1000
   oid_start: 0
-  clear_db_on_init: 0       # чистка перед работой
-  clear_db_on_init: 0       # чистка после работы
+  clear_db_on_init: 0     # чистим Xapian перед работой
+  clear_db_on_destroy: 0  # чистим Xapian после работы
 
 ui:
   max_results: 100

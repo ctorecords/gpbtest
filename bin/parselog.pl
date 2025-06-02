@@ -1,3 +1,4 @@
+#!/usr/bin/env perl
 use lib::abs '../lib';
 use uni::perl ':dumper';
 use GPBExim;

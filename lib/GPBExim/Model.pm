@@ -6,10 +6,9 @@ use Try::Tiny;
 
 use DBI;
 use JSON::XS;
-use Search::Xapian;
-use File::Path qw(remove_tree);
 use Scalar::Util::Numeric qw/isint/;
 use GPBExim::Config;
+use GPBExim::Model::Xapian;
 
 sub new {
     my $pkg = shift;
@@ -25,22 +24,7 @@ sub new {
 sub init {
     my $self = shift;
 
-    # Настройка xapian
-    my $default_xapian_dir = $self->{cfg}{xapian}{path};
-    $self->{xapian_dir} = $default_xapian_dir;
-    if ($self->{rm_xapian_db_on_init} and $self->{xapian_dir} and -d $self->{xapian_dir}) {
-        delete $self->{xapian_db};
-        remove_tree($self->{xapian_dir}, { error => \my $err });
-        if (@$err) {
-            warn "Failed to remove Xapian index at $self->{xapian_dir}: @$err\n";
-        }
-    };
-    $self->{xapian_db}  = Search::Xapian::WritableDatabase->new(
-        $self->{xapian_dir},
-        Search::Xapian::DB_CREATE_OR_OPEN
-    );
-    $self->{xapian_max_search_result} = $self->{cfg}{xapian}{max_results};
-
+    $self->{xapian} = GPBExim::Model::Xapian->new;
     $self->{oidstart} = $self->{cfg}{xapian}{oid_start};
 
     return $self;
@@ -154,113 +138,10 @@ sub get_rows_on_address_id {
     return $return;
 }
 
-sub get_emails_on_address_id {
-    my $self     = shift;
-    my $ids      = shift;
-    my %args     = @_;
-
-    my $return = $self->{dbh}->selectall_arrayref(
-        qq{select address from message_address where id in (@{[ join(', ', map { '?' } @$ids) ]}) limit 10},
-        { Slice => {} },  @$ids );
-
-    $args{debug} &&
-        warn dumper($return);
-    return $return;
-}
-
-sub _add_xapian_ngrams {
-    my $self = shift;
-    my ($min, $max)  = (3, 5);
-
-    my ($doc, $text, $prefix) = @_;
-    $max = my $length = length($text);
-    for my $n ($min .. $max) {
-        for my $i (0 .. $length - $n) {
-            my $ngram = substr($text, $i, $n);
-            $doc->add_term($prefix . $ngram);
-        }
-    }
-}
-
-sub index_address_at_xapian {
-    my $self = shift;
-    my ($email, $id) = @_;
-
-    return if defined $self->{indexed_xapian_email}{$id};
-    my $doc = Search::Xapian::Document->new;
-    $self->_add_xapian_ngrams($doc, $email, 'N');
-
-    $doc->set_data(encode_json({ id => $id, email => $email }));
-    $self->{xapian_db}->add_document($doc);
-
-    $self->{indexed_xapian_email}{$id} = $email;
-}
-
-sub search_by_email_substring {
-    my $self      = shift;
-    my $substring = shift;
-    my %args      = (
-        limit => $self->{xapian_max_search_result},
-        @_
-    );
-    croak "substring is required" unless defined $substring;
-
-    my $query = Search::Xapian::Query->new("N$substring");
-    my $enquire = Search::Xapian::Enquire->new($self->{xapian_db});
-    $enquire->set_query($query);
-
-    my $mset = $enquire->get_mset(0, $args{limit});
-    my %results;
-
-    for my $match ($mset->items) {
-        my $data = $match->get_document->get_data;
-        my $obj  = decode_json($data);
-        $results{$obj->{id}}=$obj->{email};
-    }
-
-    return \%results;
-}
-
-sub search_id_by_email_substring {
-    my $self      = shift;
-    my $substring = shift;
-    croak "substring is required" unless defined $substring;
-    my %args      = (
-        limit => $self->{xapian_max_search_result},
-        @_
-    );
-
-    my $results = $self->search_by_email_substring($substring, %args);
-    return [sort keys %$results];
-}
-
-sub search_email_by_email_substring {
-    my $self      = shift;
-    my $substring = shift;
-    croak "substring is required" unless defined $substring;
-    my %args      = (
-        limit => $self->{xapian_max_search_result},
-        @_
-    );
-
-    my $results = $self->search_by_email_substring($substring, %args);
-    return [sort values %$results];
-}
-
 sub DESTROY {
     my $self = shift;
-    #$self->SUPER::DESTROY(@_);
-    if ($self->{rm_xapian_db_on_destroy} and $self->{xapian_dir} and -d $self->{xapian_dir}) {
-        delete $self->{xapian_db};
-        remove_tree($self->{xapian_dir}, { error => \my $err });
-        if (@$err) {
-            warn "Failed to remove Xapian index at $self->{xapian_dir}: @$err\n";
-        }
-    };
-    # Опционально — удаление файла БД
-    if ($self->{clear_db_on_init} and -e $self->{dbfile}) {
-        unlink $self->{dbfile} or warn "Failed to remove file $self->{dbfile}: $!";
-    }
+
+    $self->{xapian}->destroy();
 
 }
 
