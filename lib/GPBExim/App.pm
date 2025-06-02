@@ -43,7 +43,7 @@ sub start {
         LocalPort => $self->{LocalPort} // $self->{cfg}{ui}{server_port}
     );
     $d = HTTP::Daemon->new( %connect )
-        || die "Can't start server on $connect{host}:$connect{port}: $!";
+        || die "Can't start server on $connect{connect}:$connect{LocalPort}: $!";
 
     warn "Сервер: ", $d->url, "\n";
 
