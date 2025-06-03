@@ -34,7 +34,7 @@ sub start {
         clear_db_on_init        => $self->{cfg}{db}{clear_db_on_init},
     );
 
-    my $m = GPBExim::get_model($args{model_type} // $self->{cfg}{db}{model_type}, %args)->setup_schema();
+    my $m = GPBExim::get_model($args{model_type} // $self->{cfg}{db}{model_type}, %args);
     my $v = GPBExim::View->new(model => $m);
     my $c = GPBExim::Controller->new();
 

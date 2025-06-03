@@ -12,10 +12,10 @@ sub init {
 
     $self->SUPER::init(@_);
 
-    $self->{dbfile} = $self->{cfg}{db}{db_path};
+    $self->{dbfile} = $self->{cfg}{db}{path};
     $self->{schemafile} //= $self->{cfg}{db}{schema_path};
 
-    if ($self->{clear_db_on_init} and -e $self->{dbfile}) {
+    if ($self->{cfg}{db}{clear_db_on_destroy} and -e $self->{dbfile}) {
         unlink $self->{dbfile} or warn "Failed to remove file $self->{dbfile}: $!";
     }
 
@@ -30,7 +30,7 @@ sub DESTROY {
     }
 
     # Опционально — удаление файла БД
-    if ($self->{clear_db_on_destroy} and -e $self->{dbfile}) {
+    if ($self->{cfg}{db}{clear_db_on_destroy} and -e $self->{dbfile}) {
         unlink $self->{dbfile} or warn "Failed to remove file $self->{dbfile}: $!";
     }
 
