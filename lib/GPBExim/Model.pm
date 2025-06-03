@@ -118,6 +118,8 @@ sub get_rows_on_address_id {
     my $self     = shift;
     my $tables   = shift;
     my $ids      = shift;
+    return [] if !@$ids;
+
     my %args     = @_;
 
     die "Limit is must by int" if defined ($args{limit}) && !isint($args{limit});
