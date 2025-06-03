@@ -47,12 +47,7 @@ sub test_parse_chunk {
         @_
     );
 
-    my $m = GPBExim::get_model($args{model_type},
-        rm_xapian_db_on_destroy => $args{rm_xapian_db_on_destroy},
-        rm_xapian_db_on_init    => $args{rm_xapian_db_on_init},
-        clear_db_on_init        => $args{clear_db_on_init},
-        clear_db_on_destroy     => $args{clear_db_on_destroy},
-    )->setup_schema();
+    my $m = GPBExim::get_model(delete $args{model_type}, %args)->setup_schema();
     my $v = GPBExim::View->new(model => $m);
     my $c = GPBExim::Controller->new();
 
@@ -101,12 +96,7 @@ sub test_parse_logfile {
         @_
     );
 
-    my $m = GPBExim::get_model($args{model_type},
-        rm_xapian_db_on_destroy => $args{rm_xapian_db_on_destroy},
-        rm_xapian_db_on_init    => $args{rm_xapian_db_on_init},
-        clear_db_on_init        => $args{clear_db_on_init},
-        clear_db_on_destroy     => $args{clear_db_on_destroy},
-    )->setup_schema();
+    my $m = GPBExim::get_model(delete $args{model_type}, %args)->setup_schema();
     my $v = GPBExim::View->new(model => $m);
     my $c = GPBExim::Controller->new(chunk_size=>1024*1024*1024);
 
@@ -133,12 +123,7 @@ sub test_search {
         @_
     );
 
-    my $m = GPBExim::get_model($args{model_type},
-        rm_xapian_db_on_destroy => $args{rm_xapian_db_on_destroy},
-        rm_xapian_db_on_init    => $args{rm_xapian_db_on_init},
-        clear_db_on_init        => $args{clear_db_on_init},
-        clear_db_on_destroy     => $args{clear_db_on_destroy},
-    )->setup_schema();
+    my $m = GPBExim::get_model(delete $args{model_type}, %args)->setup_schema();
     my $v = GPBExim::View->new(model => $m);
     my $c = GPBExim::Controller->new();
 
