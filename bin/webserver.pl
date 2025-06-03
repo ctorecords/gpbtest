@@ -24,4 +24,5 @@ $host //= $cfg->{ui}{server_host};
 die "Не задан хост: ни в конфиге, ни в параметре -h" unless $port;
 die "Не задан порт: ни в конфиге, ни в параметре -p" unless $port;
 
-GPBExim::App->new(LocalPort => $port, LocalHost => $host)->start();
+GPBExim::App->new()
+    ->start(server_port => $port, server_host => $host);

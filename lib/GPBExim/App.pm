@@ -16,10 +16,9 @@ our $d;
 sub new {
     my $pkg  = shift;
 
-    my $self = bless {  @_ }, $pkg;
-    $self->{cfg} = GPBExim::Config->get();
-    $self->start;
-
+    my $self = bless {
+        cfg => GPBExim::Config->get(),
+    }, $pkg;
     return $self;
 }
 
@@ -28,20 +27,28 @@ sub start {
 
     my %args  = (
         model_type              => $self->{cfg}{db}{model_type},
+
         rm_xapian_db_on_destroy => $self->{cfg}{xapian}{clear_db_on_destroy},
         rm_xapian_db_on_init    => $self->{cfg}{xapian}{clear_db_on_init},
+
         clear_db_on_destroy     => $self->{cfg}{db}{clear_db_on_destroy},
         clear_db_on_init        => $self->{cfg}{db}{clear_db_on_init},
+
+        server_host             => $self->{cfg}{ui}{server_host},
+        server_port             => $self->{cfg}{ui}{server_port},
+
+        @_
     );
 
-    my $m = GPBExim::get_model($args{model_type} // $self->{cfg}{db}{model_type}, %args);
+    my %connect = (
+        LocalAddr => delete $args{server_host},
+        LocalPort => delete $args{server_port},
+    );
+
+    my $m = GPBExim::get_model(delete $args{model_type}, %args);
     my $v = GPBExim::View->new(model => $m);
     my $c = GPBExim::Controller->new();
 
-    my %connect = (
-        LocalAddr => $self->{LocalHost} // $self->{cfg}{ui}{server_host},
-        LocalPort => $self->{LocalPort} // $self->{cfg}{ui}{server_port}
-    );
     $d = HTTP::Daemon->new( %connect )
         || die "Can't start server on $connect{LocalAddr}:$connect{LocalPort}: $!";
 
