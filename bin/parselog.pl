@@ -7,27 +7,30 @@ use GPBExim::Config;
 use Getopt::Long;
 use Cwd qw(abs_path);
 
-my $cfg = GPBExim::Config->get();
+# Опция --no-setup нужна для случаев, когда
+# парсим последовательно несколько лог-файлов для накопления информации о них
+my $no_setup;
+GetOptions(
+    'no-setup' => \$no_setup,
+) or die "Неверные параметры запуска. Использование: $0 [--no-setup] <logfile_path>\n";
 
-my $model;
-my $controller;
-
-my $logfile;
-my @args = @ARGV;
-
-$logfile = shift @args or die "Не передан путь к лог-файлу. Использование: $0 <logfile_path>\n";
+my $logfile = shift @ARGV or die "Не передан путь к лог-файлу. Использование: $0 [--no-setup] <logfile_path>\n";
 
 $logfile = abs_path($logfile) or die "Не удалось определить абсолютный путь к '$logfile'\n";
 -f $logfile or die "Файл '$logfile' не существует или не является обычным файлом\n";
 
+my $cfg = GPBExim::Config->get();
+
+my $model;
+my $controller;
 
 $model = GPBExim::get_model($cfg->{db}{model_type},
         rm_xapian_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
         rm_xapian_db_on_init    => $cfg->{xapian}{clear_db_on_init},
         clear_db_on_init        => $cfg->{db}{clear_db_on_init},
         clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
-)
-    ->setup_schema();
+);
+$model->setup_schema() unless $no_setup;
 $controller = GPBExim::Controller->new();
 
 
