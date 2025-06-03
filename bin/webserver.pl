@@ -17,7 +17,7 @@ GetOptions(
 my $cfg = GPBExim::Config->get();
 
 # Используем переданный порт или порт из конфига
-warn "Использование: $0 [-p порт]\n";
+warn "Использование: $0 [-h host] [-p port]\n";
 $port //= $cfg->{ui}{server_port};
 $host //= $cfg->{ui}{server_host};
 
