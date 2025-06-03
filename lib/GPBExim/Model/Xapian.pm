@@ -48,11 +48,21 @@ sub index_address_at_xapian {
     my ($email, $id) = @_;
 
     return if defined $self->{indexed_xapian_email}{$id};
+
+    my $term = 'N' . $email;
+
+    # Проверка через term_exists (безопасно)
+    if ($self->{xapian_db}->term_exists($term)) {
+        $self->{indexed_xapian_email}{$id} = $email;
+        return;
+    }
+
     my $doc = Search::Xapian::Document->new;
     $self->_add_xapian_ngrams($doc, $email, 'N');
-
     $doc->set_data(encode_json({ id => $id, email => $email }));
-    $self->{xapian_db}->add_document($doc);
+
+    $self->{xapian_db}->add_document($doc)
+        or die "Can't add document for $email";
 
     $self->{indexed_xapian_email}{$id} = $email;
 }

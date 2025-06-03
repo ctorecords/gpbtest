@@ -87,6 +87,10 @@ sub parse_chunk {
                     $self->{emails}{$email}= $address_id = $model->{dbh}->last_insert_id;
                     $model->{xapian}->index_address_at_xapian($email => $address_id);
                 }
+                elsif (!$self->{emails}{$email}) {
+                    $model->{xapian}->index_address_at_xapian($email => $address->{id});
+                    $self->{emails}{$email}= $address_id = $address->{id};
+                }
                 else {
                     $self->{emails}{$email}= $address_id = $address->{id};
                 }
