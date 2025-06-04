@@ -9,6 +9,7 @@ use GPBExim;
 use GPBExim::Controller;
 use GPBExim::View;
 use GPBExim::Config;
+use GPBExim::App;
 use HTTP::Request;
 use JSON::XS;
 use Encode qw(encode);
@@ -96,14 +97,15 @@ sub test_parse_logfile {
         @_
     );
 
-    my $m = GPBExim::get_model(delete $args{model_type}, %args)->setup_schema();
-    my $v = GPBExim::View->new(model => $m);
-    my $c = GPBExim::Controller->new(chunk_size=>1024*1024*1024);
+    my $app = GPBExim::App
+        ->new()
+        ->init(%args);
+    $app->{model}->setup_schema;
 
-    $fname and $c->parse_logfile($fname => $m);
+    $fname and $app->{controller}->parse_logfile($fname => $app->{model});
 
     for my $s (keys %$search_expected) {
-        my $got = $v->handle_request(cq($s), testit => 1);
+        my $got = $app->handle_request(cq($s), xdebug=>1);
         is_deeply($got, $search_expected->{$s}, encode('UTF-8', "$title: $s"));
     }
 }
@@ -123,13 +125,13 @@ sub test_search {
         @_
     );
 
-    my $m = GPBExim::get_model(delete $args{model_type}, %args)->setup_schema();
-    my $v = GPBExim::View->new(model => $m);
-    my $c = GPBExim::Controller->new();
+    my $app = GPBExim::App->new();
+    $app->init(%args);
+    $app->{model}->setup_schema;
 
-    $c->parse_chunk($m => $chunk);
+    $app->{controller}->parse_chunk($app->{model} => $chunk, xdebug => 1);
 
-    my $got = $v->handle_request(cq($search), testit => 1);
+    my $got = $app->handle_request(cq($search), xdebug => 1);
     is_deeply(
         $got,
         $expected,

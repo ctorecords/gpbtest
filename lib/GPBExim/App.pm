@@ -45,9 +45,7 @@ sub start {
         LocalPort => delete $args{server_port},
     );
 
-    my $m = GPBExim::get_model(delete $args{model_type}, %args);
-    my $v = GPBExim::View->new(model => $m);
-    my $c = GPBExim::Controller->new();
+    $self->init(%args);
 
     $d = HTTP::Daemon->new( %connect )
         || die "Can't start server on $connect{LocalAddr}:$connect{LocalPort}: $!";
@@ -58,7 +56,8 @@ sub start {
 
     while (my $_c = $d->accept) {
         while (my $r = $_c->get_request) {
-            my $resp = $v->handle_request($r, model => $m, render => 'TT');
+            my $data = $self->handle_request($r);
+            my $resp = $self->{view}->render($data);
             $_c->send_response($resp);
         }
         $_c->close;
@@ -66,6 +65,39 @@ sub start {
     }
 }
 
-DESTROY { warn "Bye...\n"; close($d) if $d };
+sub init {
+    my $self = shift;
+    my %args = @_;
+    $self->{model}      //= GPBExim::get_model(delete $args{model_type}, %args);
+    $self->{controller} //= GPBExim::Controller->new();
+    $self->{view}       //= GPBExim::View->new();
+
+    return $self;
+}
+
+sub handle_request {
+    my $self = shift;
+    my $r = shift;
+    my %args = @_;
+
+    my $m = $self->{model};
+    my $return = { data => {} };
+
+    my ($method, $path, $content) = ($r->method, $r->uri->path, $r->content);
+
+    if ($method eq 'GET' && $path eq "/") {
+        $return = $self->{controller}->root($r, $self->{model}, %args);
+    } elsif ($method eq 'POST' && $path eq "/search") {
+        $return = $self->{controller}->search($r, $self->{model}, %args);
+    } elsif ($method eq 'POST' && $path eq "/suggest") {
+        $return = $self->{controller}->suggest($r, $self->{model}, %args);
+    } elsif (!$args{testit}) {
+        $return = { render => 'HTTP::Response', data => HTTP::Response->new(RC_NOT_FOUND) };
+    }
+
+    return $return;
+}
+
+#DESTROY { my $self = shift; warn "Bye...\n"; close($d) if $d };
 
 1;

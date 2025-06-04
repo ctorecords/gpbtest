@@ -123,7 +123,8 @@ sub get_rows_on_address_id {
     my %args     = @_;
 
     die "Limit is must by int" if defined ($args{limit}) && !isint($args{limit});
-    my $limit = delete $args{limit} // $self->{cfg}{ui}{max_results} + 1;
+    my $limit = delete $args{limit};
+    $limit //= $self->{cfg}{ui}{max_results} + 1;
     $limit =  $self->{cfg}{ui}{max_results} + 1 if $limit > $self->{cfg}{ui}{max_results} + 1;
 
     my $return = $self->{dbh}->selectall_arrayref(

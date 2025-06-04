@@ -35,8 +35,6 @@ sub handle_request {
 
     my ($method, $path, $content) = ($r->method, $r->uri->path, $r->content);
 
-    my $tt = Template->new(TRIM => 1, ABSOLUTE => 1);
-
     if ($method eq 'GET' && $path eq "/") {
         $return = $self->root($r, $m);
     } elsif ($method eq 'POST' && $path eq "/search") {
@@ -57,6 +55,7 @@ sub handle_request {
 
     # рендер через Template::Toolkit
     if ($return->{render} eq 'TT') {
+        my $tt = Template->new(TRIM => 1, ABSOLUTE => 1);
         my $body = '';
         $tt->process( $return->{template}, $return, \$body )
             or die $tt->error();
@@ -79,78 +78,40 @@ sub handle_request {
     return { data => $return->{data} };
 }
 
-sub suggest {
+sub render {
     my $self = shift;
-    my $r    = shift;
-    my $m    = shift;
+    my $data = shift;
     my %args = @_;
 
-    my $return = { data => [] };
-    $return->{render} = 'JSON' if (!$args{testit});
+    # если пришёл готовый HTTP::Response, просто его возвращаем
+    if ($data->{render} eq 'HTTP::Response') {
+        return $data->{data};
+    }
 
-    # получим входной запрос
-    my $rdata = eval { decode_json($r->content) };
-    return $return if ($@ || !$rdata->{s});
+    # рендер через Template::Toolkit
+    if ($data->{render} eq 'TT') {
+        my $tt = Template->new(TRIM => 1, ABSOLUTE => 1);
+        my $body = '';
+        $tt->process( $data->{template}, $data, \$body )
+            or die $tt->error();
 
-    # получим поисковую строку по e-mail
-    my $email = $rdata->{s}
-        or return $return;
+        my $resp = HTTP::Response->new(RC_OK, undef, undef, $body);
+        $resp->header('Content-Type' => 'text/html; charset=utf-8');
+        return $resp;
+    }
 
-    # получим список проиндексированных в Xapian e-mail адресов
-    my $emails = $m->{xapian}->search_email_by_email_substring($email);
-    return $return if (!@$emails);
+    # рендер JSON
+    if ($data->{render} eq 'JSON') {
+        my $body = encode_json($data);
 
-    push @{$return->{data}}, {address => $_} for @$emails;
+        my $resp = HTTP::Response->new(RC_OK, undef, undef, encode('UTF-8', $body));
+        $resp->header('Content-Type' => 'application/json; charset=utf-8');
+        return $resp;
+    }
 
-    return $return;
-
+    # возвращаем просто данные, если дошли до этой строки
+    return { data => $data->{data} };
 }
-
-sub search {
-    my $self = shift;
-    my $r    = shift;
-    my $m    = shift;
-    my %args = @_;
-
-    my $return = { data => [] };
-    $return->{render} = 'JSON' if (!$args{testit});
-
-    # получим входной запрос
-    my $rdata = eval { decode_json($r->content) };
-    return $return if ($@ || !$rdata->{s});
-
-    # получим поисковую строку по e-mail
-    my $email = $rdata->{s}
-        or return $return;
-
-    # получим список проиндексированных в Xapian e-mail адресов
-    my $ids = $m->{xapian}->search_id_by_email_substring($email);
-    return $return if (!@$ids);
-
-    # получим данные строчек log и message, связанных с этими адресами
-    $return->{data} = $m->get_rows_on_address_id([qw/log message/], $ids,
-        limit => $self->{cfg}{ui}{max_results}+1);
-
-    # если строчек больше лимита, то последний 101й элемент пометим
-    if (defined $return->{data}->[$self->{cfg}{ui}{max_results}]) {
-        $return->{data}->[$self->{cfg}{ui}{max_results}-1]{continue} = 1;
-        splice @{ $return->{data} }, $self->{cfg}{ui}{max_results}, 1;
-    };
-
-    return $return;
-}
-
-sub root {
-    my $self = shift;
-    my $r    = shift;
-    my $m    = shift;
-    my %args = @_;
-
-    $args{testit} && return { render => undef, data => {} };
-
-    return { render => 'TT',  data => { max_results => $self->{cfg}{max_results} }, template => $self->{cfg}{ui}{template_path}  };
-};
-
 
 
 1;

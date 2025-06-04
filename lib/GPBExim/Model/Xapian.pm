@@ -45,7 +45,9 @@ sub _add_xapian_ngrams {
 
 sub index_address_at_xapian {
     my $self = shift;
-    my ($email, $id) = @_;
+    my $email = shift;
+    my $id    = shift;
+    my %args  = @_;
 
     return if defined $self->{indexed_xapian_email}{$id};
 
@@ -54,6 +56,7 @@ sub index_address_at_xapian {
     # Проверка через term_exists (безопасно)
     if ($self->{xapian_db}->term_exists($term)) {
         $self->{indexed_xapian_email}{$id} = $email;
+        warn "$email [id=$id] already indexed at xapian" if $args{debug};
         return;
     }
 
@@ -63,6 +66,8 @@ sub index_address_at_xapian {
 
     $self->{xapian_db}->add_document($doc)
         or die "Can't add document for $email";
+
+    warn "$email [id=$id] was indexed at xapian" if $args{debug};
 
     $self->{indexed_xapian_email}{$id} = $email;
 }

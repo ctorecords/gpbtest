@@ -4,7 +4,7 @@ use uni::perl ':dumper';
 use GPBExim::TestHelper qw(test_search test_parse_logfile cq);
 
 test_parse_logfile('Разбор длинного предоставленного файла' => lib::abs::path('../temp/maillog'), {
-    'fwxvparobkymnbyemevz@london.com' => { data => [
+    'fwxvparobkymnbyemevz@london.com' => { render=> 'JSON', data => [
       { int_id => "1QIIgl-000F1c-JL", o_id => 3662, t => "log", created => "2012-02-13 14:49:31", str => '1QIIgl-000F1c-JL ** fwxvparobkymnbyemevz@london.com: retry timeout exceeded' },
       { int_id => "1QIKLq-000KB4-DB", o_id => 3058, t => "log", created => "2012-02-13 14:49:16", str => '1QIKLq-000KB4-DB ** fwxvparobkymnbyemevz@london.com: retry timeout exceeded' },
       { int_id => "1QN0p8-000MTa-JW", o_id => 3690, t => "log", created => "2012-02-13 14:49:31", str => '1QN0p8-000MTa-JW ** fwxvparobkymnbyemevz@london.com: retry timeout exceeded' },
@@ -15,7 +15,7 @@ test_parse_logfile('Разбор длинного предоставленног
         continue => 1,
       }
     ] },
-    'aoyfuviev@yandex.ru' => { data => [
+    'aoyfuviev@yandex.ru' => { render=> 'JSON', data => [
       { int_id => "1Rwtd1-0000Ac-QT", o_id => 6670, t => "log", created => "2012-02-13 14:59:36", str => '1Rwtd1-0000Ac-QT == aoyfuviev@yandex.ru R=dnslookup T=remote_smtp defer (-1): domain matches queue_smtp_domains, or -odqs set' },
       { int_id => "1Rwtd1-0000Ac-QT", o_id => 7672, t => "log", created => "2012-02-13 15:00:21", str => '1Rwtd1-0000Ac-QT => aoyfuviev@yandex.ru R=dnslookup T=remote_smtp H=mx.yandex.ru [87.250.250.89]* C="250 2.0.0 Ok: queued on mxfront35.mail.yandex.net as 0J4u9PaF-0J4WuG2S"' },
       { int_id => "1Rwtd1-0000Ac-Ry", o_id => 6672, t => "log", created => "2012-02-13 14:59:36", str => '1Rwtd1-0000Ac-Ry == aoyfuviev@yandex.ru R=dnslookup T=remote_smtp defer (-1): domain matches queue_smtp_domains, or -odqs set' },
