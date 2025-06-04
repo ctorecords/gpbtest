@@ -10,39 +10,15 @@ use DBI;
 
 sub init {
     my $self = shift;
-    my %args = (
-        @_
-    );
+    my %args = ( %{$self->{cfg}{db}}, @_ );
 
-    $self->SUPER::init(@_);
+    $self->SUPER::init();
 
-    $self->{host}     //= $self->{cfg}{db}{host};
-    $self->{port}     //= $self->{cfg}{db}{port};
-    $self->{user}     //= $self->{cfg}{db}{user};
-    $self->{password} //= $self->{cfg}{db}{password};
-    $self->{dbname}   //= $self->{cfg}{db}{name};
-    $self->{schemafile} //= $self->{cfg}{db}{schema_path};
+    $args{dsn} = $self->{dsn} = "DBI:mysql:database=$args{name};host=$args{host};port=$args{port}";
+    $self->{dbh} = DBI->connect( @args{qw/dsn user password/}, { RaiseError => 1, PrintError => 0 } )
+        or die "Can't connect to DB: $DBI::errstr";
 
-    # DSN формируется из параметров
-    $self->{dsn} = "DBI:mysql:database=$self->{dbname};host=$self->{host};port=$self->{port}";
-
-    # Подключение к БД
-    $self->{dbh} = DBI->connect(
-        $self->{dsn},
-        $self->{user},
-        $self->{password},
-        {
-            RaiseError => 1,
-            PrintError => 0,
-            mysql_enable_utf8mb4 => 1,
-            mysql_socket => undef,
-        }
-    ) or die "Can't connect to DB: $DBI::errstr";
-
-    # Опционально — очистка всех таблиц
-    if ($self->{clear_db_on_init}) {
-        $self->clear_all_tables;
-    };
+    $self->clear_all_tables if ($self->{clear_db_on_init});
 
     return $self;
 }
@@ -82,7 +58,7 @@ sub DESTROY {
         $self->$super_destroy();
     }
 
-    # Опционально — удаление файла БД
+    # Опционально — чистка БД
     if ($self->{cfg}{db}{clear_db_on_destroy}) {
         $self->clear_all_tables;
     }
