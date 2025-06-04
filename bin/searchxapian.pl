@@ -5,8 +5,6 @@ use lib::abs '../lib';
 use GPBExim;
 use Search::Xapian;
 
-my $m = GPBExim::get_model('MySQL');
-
 my ($dir, $substr) = @ARGV;
 #($dir, $substr) = qw{temp/xapian_tests yomlvprts};
 die "Usage: $0 /path/to/xapian index_substring\n" unless $dir && $substr;
@@ -28,5 +26,4 @@ for my $match ($mset->items) {
     my $data = $match->get_document->get_data;
     $r{$data}=1;
 }
-#my $return = { data => $m->get_rows_on_address_id([qw/log message/], [keys %r], debug => 1) };
 warn dumper(\%r);
