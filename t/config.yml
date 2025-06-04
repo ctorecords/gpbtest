@@ -22,3 +22,7 @@ ui:
   server_port: 8080
   server_host: "0.0.0.0"
   template_path: 'templates/search.html'
+  
+parser:
+  max_chunks:  1048576  # 1024*1024
+  chunk_size: 10485760  # 1024*1024*10

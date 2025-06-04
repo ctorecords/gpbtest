@@ -2,7 +2,7 @@
 use lib::abs '../lib';
 use uni::perl ':dumper';
 use GPBExim;
-use GPBExim::Controller;
+use GPBExim::Parser;
 use GPBExim::Config;
 use Getopt::Long;
 use Cwd qw(abs_path);
@@ -22,7 +22,7 @@ $logfile = abs_path($logfile) or die "Не удалось определить �
 my $cfg = GPBExim::Config->get();
 
 my $model;
-my $controller;
+my $parser;
 
 $model = GPBExim::get_model($cfg->{db}{model_type},
         rm_xapian_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
@@ -31,22 +31,22 @@ $model = GPBExim::get_model($cfg->{db}{model_type},
         clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
 );
 $model->setup_schema() unless $no_setup;
-$controller = GPBExim::Controller->new();
+$parser = GPBExim::Parser->new();
 
 
-if (my $LOG_FH = $controller->open_log($logfile)) {
+if (my $LOG_FH = $parser->open_log($logfile)) {
     my $chunk_counter = 0;
 
     # читаем лог чанками
-    CHUNKS: while (!eof($LOG_FH) and ++$chunk_counter<$controller->{max_chunks} ) {
+    CHUNKS: while (!eof($LOG_FH) and ++$chunk_counter<$parser->{max_chunks} ) {
         # ... и внутри чанка транзакциями обновляем БД
-        my $chunk = $controller->get_next_chunk_from_log($LOG_FH)
+        my $chunk = $parser->get_next_chunk_from_log($LOG_FH)
             or last CHUNKS;
         $model->txn(sub {
             my %args = @_;
-            $controller->parse_chunk($model => $chunk, @_);
+            $parser->parse_chunk($model => $chunk, @_);
         });
     };
 
-    $controller->close_log($LOG_FH);
+    $parser->close_log($LOG_FH);
 }

@@ -7,6 +7,7 @@ use uni::perl ':dumper';
 use lib::abs '../../../lib';
 use GPBExim;
 use GPBExim::Controller;
+use GPBExim::Parser;
 use GPBExim::View;
 use GPBExim::Config;
 use GPBExim::App;
@@ -31,7 +32,7 @@ sub test_parse_line {
         @_
     );
 
-    is_deeply(GPBExim::Controller->new()->parse_line($line), $hash, encode('UTF-8', $title) );
+    is_deeply(GPBExim::Parser->new()->parse_line($line), $hash, encode('UTF-8', $title) );
 }
 
 sub test_parse_chunk {
@@ -50,9 +51,9 @@ sub test_parse_chunk {
 
     my $m = GPBExim::get_model(delete $args{model_type}, %args)->setup_schema();
     my $v = GPBExim::View->new(model => $m);
-    my $c = GPBExim::Controller->new();
+    my $p = GPBExim::Parser->new();
 
-    $c->parse_chunk($m => $chunk);
+    $p->parse_chunk($m => $chunk);
 
     my $message_address = $m->{dbh}->selectall_arrayref("select id, created, address from message_address", { Slice => {} });
     my %xemails = map { $_->{address} => { orig => [$_->{id}], found=> $m->{xapian}->search_id_by_email_substring($_->{address}) } } @$message_address;
@@ -97,12 +98,8 @@ sub test_parse_logfile {
         @_
     );
 
-    my $app = GPBExim::App
-        ->new()
-        ->init(%args);
-    $app->{model}->setup_schema;
-
-    $fname and $app->{controller}->parse_logfile($fname => $app->{model});
+    (my $app = GPBExim::App->new()->init(%args))->{model}->setup_schema;
+    $fname and GPBExim::Parser->new()->parse_logfile($fname => $app->{model});
 
     for my $s (keys %$search_expected) {
         my $got = $app->handle_request(cq($s), xdebug=>1);
@@ -125,11 +122,8 @@ sub test_search {
         @_
     );
 
-    my $app = GPBExim::App->new();
-    $app->init(%args);
-    $app->{model}->setup_schema;
-
-    $app->{controller}->parse_chunk($app->{model} => $chunk, xdebug => 1);
+    (my $app = GPBExim::App->new()->init(%args))->{model}->setup_schema;
+    GPBExim::Parser->new()->parse_chunk($app->{model} => $chunk, xdebug => 1);
 
     my $got = $app->handle_request(cq($search), xdebug => 1);
     is_deeply(
