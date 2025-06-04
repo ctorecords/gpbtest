@@ -74,7 +74,7 @@ sub root {
 
     $args{testit} && return { render => undef, data => {} };
 
-    return { render => 'TT',  data => { max_results => $self->{cfg}{max_results} }, template => $self->{cfg}{ui}{template_path}  };
+    return { render => 'TT',  data => { max_results => $self->{cfg}{ui}{max_results} }, template => $self->{cfg}{ui}{template_path}  };
 };
 
 1;
