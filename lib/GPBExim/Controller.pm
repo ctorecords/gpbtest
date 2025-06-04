@@ -33,8 +33,8 @@ sub suggest {
     my $email = $rdata->{s}
         or return $return;
 
-    # получим список проиндексированных в Xapian e-mail адресов
-    my $emails = $m->{xapian}->search_email_by_email_substring($email);
+    # получим список e-mail адресов
+    my $emails = $m->search_email_by_substr($email);
     return $return if (!@$emails);
 
     push @{$return->{data}}, {address => $_} for @$emails;
@@ -60,21 +60,8 @@ sub search {
     my $email = $rdata->{s}
         or return $return;
 
-    # получим список проиндексированных в Xapian e-mail адресов
-    my $ids = $m->{xapian}->search_id_by_email_substring($email);
-    return $return if (!@$ids);
-
-    # получим данные строчек log и message, связанных с этими адресами
-    $return->{data} = $m->get_rows_on_address_id([qw/log message/], $ids,
-        limit => $self->{cfg}{ui}{max_results}+1,
-        %args
-    );
-
-    # если строчек больше лимита, то последний 101й элемент пометим
-    if (defined $return->{data}->[$self->{cfg}{ui}{max_results}]) {
-        $return->{data}->[$self->{cfg}{ui}{max_results}-1]{continue} = 1;
-        splice @{ $return->{data} }, $self->{cfg}{ui}{max_results}, 1;
-    };
+    # получим список строчек log и message, связанных с $email
+    $return->{data} = $m->search_rows_by_substr($email) // [];
 
     return $return;
 }

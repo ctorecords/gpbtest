@@ -189,6 +189,35 @@ sub sql_prepare {
     $self->{sth}={ map { $_ => $self->{dbh}->prepare_cached($_sth{$_}) } keys %_sth };
 }
 
+# code sugar: пусть будет просто поиск по e-mail.
+# Не зачем кому-то вникать, что под капотом для скороости Xapian
+sub search_email_by_substr { shift()->{xapian}->search_email_by_email_substring(@_) }
+sub search_id_by_substr    { shift()->{xapian}->search_id_by_email_substring(@_) }
+
+sub search_rows_by_substr {
+    my $self   = shift;
+    my $substr = shift;
+    my %args   = @_;
+
+    my $ids = $self->search_id_by_substr($substr, %args);
+    return if (!@$ids);
+
+    my $return_data = $self->get_rows_on_address_id([qw/log message/], $ids,
+        limit => $self->{cfg}{ui}{max_results}+1,
+        %args
+    );
+    return if !@$return_data;
+
+    # если строчек больше лимита, то последний 101й элемент пометим
+    if (defined $return_data->[$self->{cfg}{ui}{max_results}]) {
+        $return_data->[$self->{cfg}{ui}{max_results}-1]{continue} = 1;
+        splice @$return_data, $self->{cfg}{ui}{max_results}, 1;
+    };
+
+    return $return_data;
+
+}
+
 sub DESTROY {
     my $self = shift;
 
