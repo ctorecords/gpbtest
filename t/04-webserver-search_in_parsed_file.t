@@ -1,9 +1,9 @@
 use Test::More;
 use lib::abs 'lib';
 use uni::perl ':dumper';
-use GPBExim::TestHelper qw(test_search test_parse_logfile cq);
+use GPBExim::TestHelper qw(test_search test_search_in_parsed_logfile cq);
 
-test_parse_logfile('Разбор длинного предоставленного файла' => lib::abs::path('../temp/maillog'), {
+test_search_in_parsed_logfile('Разбор длинного предоставленного файла' => lib::abs::path('../temp/maillog'), {
     'fwxvparobkymnbyemevz@london.com' => { render=> 'JSON', data => [
       { int_id => "1QIIgl-000F1c-JL", o_id => 3662, t => "log", created => "2012-02-13 14:49:31", str => '1QIIgl-000F1c-JL ** fwxvparobkymnbyemevz@london.com: retry timeout exceeded' },
       { int_id => "1QIKLq-000KB4-DB", o_id => 3058, t => "log", created => "2012-02-13 14:49:16", str => '1QIKLq-000KB4-DB ** fwxvparobkymnbyemevz@london.com: retry timeout exceeded' },

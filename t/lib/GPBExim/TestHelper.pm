@@ -19,7 +19,7 @@ use Exporter 'import';
 our @EXPORT_OK = qw(
     test_parse_line
     test_parse_chunk
-    test_parse_logfile
+    test_search_in_parsed_logfile
     test_search
     cq
 );
@@ -84,7 +84,7 @@ sub test_parse_chunk {
 
 }
 
-sub test_parse_logfile {
+sub test_search_in_parsed_logfile {
     my $title    = shift;
     my $fname    = shift;
     my $search_expected = shift;
