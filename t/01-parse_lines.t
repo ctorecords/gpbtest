@@ -5,22 +5,13 @@ use GPBExim::TestHelper qw(test_parse_line test_parse_chunk);
 
 
 test_parse_line ( 'Проверка парсера регэкспом строки с ошибкой Too many mails (mail bomb)' =>
-    join(' ',
-        q{2012-02-13 14:39:22},
-        q{1RookS-000Pg8-VO == udbbwscdnbegrmloghuf@london.com},
-        q{R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>:},
-        q{host mx0.gmx.com [74.208.5.90]: 450 4.3.2 Too many mails (mail bomb), try again in 1 hour(s) 25 minute(s) and see},
-        q{( http://portal.gmx.net/serverrules ) {mx-us011}}
-    ),
+    '2012-02-13 14:39:22 1RookS-000Pg8-VO == udbbwscdnbegrmloghuf@london.com R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>: host mx0.gmx.com [74.208.5.90]: 450 4.3.2 Too many mails (mail bomb), try again in 1 hour(s) 25 minute(s) and see ( http://portal.gmx.net/serverrules ) {mx-us011}',
     {
         datetime => '2012-02-13 14:39:22',
         int_id   => '1RookS-000Pg8-VO',
         flag     => '==',
         email    => 'udbbwscdnbegrmloghuf@london.com',
-        other    => join(' ',
-            q{R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>:},
-            q{host mx0.gmx.com [74.208.5.90]: 450 4.3.2 Too many mails (mail bomb), try again in 1 hour(s) 25 minute(s) and see},
-            q{( http://portal.gmx.net/serverrules ) {mx-us011}}),
+        other    => 'R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>: host mx0.gmx.com [74.208.5.90]: 450 4.3.2 Too many mails (mail bomb), try again in 1 hour(s) 25 minute(s) and see ( http://portal.gmx.net/serverrules ) {mx-us011}',
     }
 );
 

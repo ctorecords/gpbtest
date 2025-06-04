@@ -5,22 +5,13 @@ use GPBExim::TestHelper qw(test_parse_line test_parse_chunk);
 
 
 test_parse_line ( 'Проверка парсера регэкспом строки с ошибкой Too many mails (mail bomb)' =>
-    join(' ',
-        q{2012-02-13 14:39:22},
-        q{1RookS-000Pg8-VO == udbbwscdnbegrmloghuf@london.com},
-        q{R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>:},
-        q{host mx0.gmx.com [74.208.5.90]: 450 4.3.2 Too many mails (mail bomb), try again in 1 hour(s) 25 minute(s) and see},
-        q{( http://portal.gmx.net/serverrules ) {mx-us011}}
-    ),
+    '2012-02-13 14:39:22 1RookS-000Pg8-VO == udbbwscdnbegrmloghuf@london.com R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>: host mx0.gmx.com [74.208.5.90]: 450 4.3.2 Too many mails (mail bomb), try again in 1 hour(s) 25 minute(s) and see ( http://portal.gmx.net/serverrules ) {mx-us011}',
     {
         datetime => '2012-02-13 14:39:22',
         int_id   => '1RookS-000Pg8-VO',
         flag     => '==',
         email    => 'udbbwscdnbegrmloghuf@london.com',
-        other    => join(' ',
-            q{R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>:},
-            q{host mx0.gmx.com [74.208.5.90]: 450 4.3.2 Too many mails (mail bomb), try again in 1 hour(s) 25 minute(s) and see},
-            q{( http://portal.gmx.net/serverrules ) {mx-us011}}),
+        other    => 'R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>: host mx0.gmx.com [74.208.5.90]: 450 4.3.2 Too many mails (mail bomb), try again in 1 hour(s) 25 minute(s) and see ( http://portal.gmx.net/serverrules ) {mx-us011}',
     }
 );
 
@@ -68,30 +59,23 @@ test_parse_line ( 'Проверка парсера регэкспом строк
     }
 );
 
-test_parse_chunk( "4 lines" => join(' ',
-        q{2012-02-13 14:39:22},
-        q{1RookS-000Pg8-VO == udbbwscdnbegrmloghuf@london.com},
-        q{R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>:},
-        q{host mx0.gmx.com [74.208.5.90]: 450 4.3.2 Too many mails (mail bomb), try again in 1 hour(s) 25 minute(s) and see},
-        q{( http://portal.gmx.net/serverrules ) {mx-us011}})
-        . "\n" .
-        q{2012-02-13 14:39:22 1RookS-000Pg8-VO ** fwxvparobkymnbyemevz@london.com: retry timeout exceeded}
-        . "\n" .
-        q{2012-02-13 14:39:22 1RwtJa-000AFJ-3B <= <> R=1RookS-000Pg8-VO U=mailnull P=local S=3958}
-        . "\n" .
-        q{2012-02-13 14:39:22 1RookS-000Pg8-VO Completed},
+test_parse_chunk( "4 lines" => join("\n",
+        q{2012-02-13 14:39:22 1RookS-000Pg8-VO == udbbwscdnbegrmloghuf@london.com R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>: host mx0.gmx.com [74.208.5.90]: 450 4.3.2 Too many mails (mail bomb), try again in 1 hour(s) 25 minute(s) and see ( http://portal.gmx.net/serverrules ) {mx-us011}},
+        q{2012-02-13 14:39:22 1RookS-000Pg8-VO ** fwxvparobkymnbyemevz@london.com: retry timeout exceeded},
+        q{2012-02-13 14:39:22 1RwtJa-000AFJ-3B <= <> R=1RookS-000Pg8-VO U=mailnull P=local S=3958},
+        q{2012-02-13 14:39:22 1RookS-000Pg8-VO Completed}),
 
     {
         message_address => [
-            { created => "2012-02-13 14:39:22", address => "udbbwscdnbegrmloghuf\@london.com", id => 1 },
-            { created => "2012-02-13 14:39:22", address => "fwxvparobkymnbyemevz\@london.com", id => 2 },
+            { created => '2012-02-13 14:39:22', address => 'udbbwscdnbegrmloghuf@london.com', id => 1 },
+            { created => '2012-02-13 14:39:22', address => 'fwxvparobkymnbyemevz@london.com', id => 2 },
         ],
         message_bounce  => [
             { created => "2012-02-13 14:39:22", int_id => "1RwtJa-000AFJ-3B", address_id => 2,
-                str => "1RwtJa-000AFJ-3B <= <> R=1RookS-000Pg8-VO U=mailnull P=local S=3958", o_id=> "3" }
+                str => '1RwtJa-000AFJ-3B <= <> R=1RookS-000Pg8-VO U=mailnull P=local S=3958', o_id=> 3 }
         ],
         log => [
-            { created => "2012-02-13 14:39:22", int_id => "1RookS-000Pg8-VO", address_id => 1, o_id=> "1",
+            { created => '2012-02-13 14:39:22', int_id => '1RookS-000Pg8-VO', address_id => 1, o_id=> "1",
                 str => join(' ',
                     q{1RookS-000Pg8-VO == udbbwscdnbegrmloghuf@london.com},
                     q{R=dnslookup T=remote_smtp defer (-44): SMTP error from remote mail server after RCPT TO:<udbbwscdnbegrmloghuf@london.com>:},
@@ -100,8 +84,8 @@ test_parse_chunk( "4 lines" => join(' ',
 
                 ),
             },
-            { str => "1RookS-000Pg8-VO ** fwxvparobkymnbyemevz\@london.com: retry timeout exceeded", created => "2012-02-13 14:39:22", int_id => "1RookS-000Pg8-VO", address_id => 2, o_id=> "2" },
-            { str => q{1RookS-000Pg8-VO Completed}, created => "2012-02-13 14:39:22", int_id => "1RookS-000Pg8-VO", address_id => undef, o_id=> "4" },
+            { str => '1RookS-000Pg8-VO ** fwxvparobkymnbyemevz@london.com: retry timeout exceeded', created => '2012-02-13 14:39:22', int_id => '1RookS-000Pg8-VO', address_id => 2, o_id=> 2 },
+            { str => '1RookS-000Pg8-VO Completed', created => '2012-02-13 14:39:22', int_id => '1RookS-000Pg8-VO', address_id => undef, o_id=> 4 },
 
         ]
     },
