@@ -18,6 +18,8 @@ sub new {
     my %args = (
         db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
         db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        db__schema_path             => $cfg->{db}{schema_path},
+        db__path                    => $cfg->{db}{path} // '',
         xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
         xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
         xapian__path                => $cfg->{xapian}{path},
@@ -28,6 +30,8 @@ sub new {
     my %args_db  = (
         clear_db_on_init            => delete $args{db__clear_db_on_init},
         clear_db_on_destroy         => delete $args{db__clear_db_on_destroy},
+        schema_path                 => delete $args{db__schema_path},
+        path                        => delete $args{db__path},
     );
     my %args_xapian  = (
         clear_db_on_destroy         => delete $args{xapian__clear_db_on_destroy},
@@ -64,7 +68,7 @@ sub setup_schema {
     my $self = shift;
 
     my $sql = do {
-        local(@ARGV, $/) = $self->{cfg}{db}{schema_path};
+        local(@ARGV, $/) = $self->{schema_path};
         <>;
     };
 

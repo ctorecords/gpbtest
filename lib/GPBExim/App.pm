@@ -25,14 +25,20 @@ sub new {
 sub start {
     my $self = shift;
 
+    my $cfg  = $self->{cfg};
     my %args  = (
         model_type              => $self->{cfg}{db}{model_type},
 
-        rm_xapian_db_on_destroy => $self->{cfg}{xapian}{clear_db_on_destroy},
-        rm_xapian_db_on_init    => $self->{cfg}{xapian}{clear_db_on_init},
+        db__clear_db_on_init    => $cfg->{db}{clear_db_on_init},
+        db__clear_db_on_destroy => $cfg->{db}{clear_db_on_destroy},
+        db__schema_path         => $cfg->{db}{schema_path},
+        db__path                => $cfg->{db}{path} // '',
 
-        clear_db_on_destroy     => $self->{cfg}{db}{clear_db_on_destroy},
-        clear_db_on_init        => $self->{cfg}{db}{clear_db_on_init},
+        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
+        xapian__clear_db_on_init => $cfg->{xapian}{clear_db_on_init},
+        xapian__path            => $cfg->{xapian}{path},
+        xapian__min             => $cfg->{xapian}{min},
+        xapian__max_results     => $cfg->{xapian}{max_results},
 
         server_host             => $self->{cfg}{ui}{server_host},
         server_port             => $self->{cfg}{ui}{server_port},

@@ -6,7 +6,7 @@ db:
 
   # путь от файла конфига
   schema_path: ../schema/SQLite3.sql
-  #db_path: ../temp/sqlite3.db
+  #path: ../temp/sqlite3.db
   name: gpbexim
 
 xapian:

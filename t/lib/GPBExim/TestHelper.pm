@@ -110,6 +110,7 @@ sub test_search_in_parsed_logfile {
         model_type => $cfg->{db}{model_type},
         db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
         db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        db__schema_path             => $cfg->{db}{schema_path},
         xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
         xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
         xapian__path                => $cfg->{xapian}{path},
