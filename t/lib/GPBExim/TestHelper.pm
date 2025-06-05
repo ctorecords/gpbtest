@@ -201,10 +201,10 @@ sub test_live_search_in_parsed_logfile {
         for my $s ( grep { $search_expected->{$_}{$handle} } keys %$search_expected ) {
             my $req_json = encode_json({ s => $s });
             my $url = "http://$host:$port/$handle";
-            my $res = $ua->request(cq($s, "http://$host:$port/$handle"));
+            my $res = $ua->request(cq($s, $url));
 
             # тест живого сервера
-            ok($res->is_success, encode('UTF-8', "Ответ на запрос '$req_json' от сервера http://$host:$port/$handle получен"));
+            ok($res->is_success, encode('UTF-8', "Ответ на запрос '$req_json' от сервера $url получен"));
             is_deeply(decode_json($res->decoded_content), $search_expected->{$s}{$handle}, encode('UTF-8', "$title (live server - $handle): $s"));
 
             # тест модели
