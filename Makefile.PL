@@ -24,7 +24,9 @@ WriteMakefile(
         'Getopt::Long'          => 0,
         'LWP::UserAgent'        => 0,
         'HTTP::Request::Common' => 0,
-        
+        'IO::Socket::INET'      => 0,
+        'Time::HiRes'           => 0,
+
     },
     test => { TESTS => 't/*.t' },
 );
