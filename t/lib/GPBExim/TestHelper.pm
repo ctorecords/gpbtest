@@ -12,14 +12,20 @@ use GPBExim::View;
 use GPBExim::Config;
 use GPBExim::App;
 use HTTP::Request;
+use LWP::UserAgent;
+use HTTP::Request::Common qw(POST);
+use Time::HiRes qw(sleep);
+use POSIX qw(:sys_wait_h);
 use JSON::XS;
 use Encode qw(encode);
+use IO::Socket::INET;
 
 use Exporter 'import';
 our @EXPORT_OK = qw(
     test_parse_line
     test_parse_chunk
     test_search_in_parsed_logfile
+    test_live_search_in_parsed_logfile
     test_search
     cq
 );
@@ -128,6 +134,88 @@ sub test_search_in_parsed_logfile {
     }
 }
 
+sub get_free_port {
+    my $cfg = GPBExim::Config->get();
+    my $sock = IO::Socket::INET->new(
+        Proto     => 'tcp',
+        LocalAddr => $cfg->{ui}{server_host},
+        Listen    => 1,
+        Reuse     => 1,
+    ) or die "Не удалось открыть временный сокет: $!";
+    my $port = $sock->sockport;
+    $sock->close;
+    return $port;
+}
+
+sub server_is_up {
+    my ($host, $port) = @_;
+    IO::Socket::INET->new(
+        PeerAddr => $host,
+        PeerPort => $port,
+        Proto    => 'tcp',
+        Timeout  => 0.2,
+    );
+}
+
+
+sub test_live_search_in_parsed_logfile {
+    my $title    = shift;
+    my $fname    = shift;
+    my $search_expected = shift;
+    my $cfg = GPBExim::Config->get();
+    my %args = (
+        model_type => $cfg->{db}{model_type},
+        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
+        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        db__schema_path             => $cfg->{db}{schema_path},
+        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
+        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
+        xapian__path                => $cfg->{xapian}{path},
+        xapian__min                 => $cfg->{xapian}{min},
+        xapian__max_results         => $cfg->{xapian}{max_results},
+        @_
+    );
+
+    (my $app = GPBExim::App->new()->init(%args))->{model}->setup_schema;
+    $fname and GPBExim::Parser->new()->parse_logfile($fname => $app->{model});
+    my $port = get_free_port();
+    my $host = $cfg->{ui}{server_host};
+    my $pid;
+    $pid = fork();
+    if (!defined $pid) {
+        die "Не удалось сделать fork: $!";
+    }
+    elsif($pid == 0) {
+        $SIG{INT} = sub { exit(0) };
+        $app->start(
+            server_port => $port,
+            server_host => $host,
+            silent => 1,
+        );
+        exit 0;
+    }
+    sleep 0.3 until server_is_up($host, $port);
+    my $ua = LWP::UserAgent->new(timeout => 2);
+
+    for my $handle (qw/search suggest/) {
+        for my $s ( grep { $search_expected->{$_}{$handle} } keys %$search_expected ) {
+            my $req_json = encode_json({ s => $s });
+            my $url = "http://$host:$port/$handle";
+            my $res = $ua->request(cq($s, "http://$host:$port/$handle"));
+
+            # тест живого сервера
+            ok($res->is_success, encode('UTF-8', "Ответ на запрос '$req_json' от сервера http://$host:$port/$handle получен"));
+            is_deeply(decode_json($res->decoded_content), $search_expected->{$s}{$handle}, encode('UTF-8', "$title (live server - $handle): $s"));
+
+            # тест модели
+            is_deeply($app->handle_request(cq($s, "/$handle"), xdebug=>1), $search_expected->{$s}{$handle}, encode('UTF-8', "$title (model - $handle): $s"));
+        }
+    }
+
+    kill 'INT', $pid;
+    waitpid($pid, 0);
+}
+
 sub test_search {
     my $title  = shift;
     my $chunk  = shift;
@@ -160,8 +248,9 @@ sub test_search {
 
 sub cq {
   my $search = shift;
+  my $handle = shift;
 
-  my $req = HTTP::Request->new(POST => '/search');
+  my $req = HTTP::Request->new(POST => ($handle || '/search'));
     $req->header('Content-Type' => 'application/json');
     $req->content(encode_json({ s => $search }));
 

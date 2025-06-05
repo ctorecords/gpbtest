@@ -27,6 +27,7 @@ sub start {
 
     my $cfg  = $self->{cfg};
     my %args  = (
+        silent                  => 0,
         model_type              => $self->{cfg}{db}{model_type},
 
         db__clear_db_on_init    => $cfg->{db}{clear_db_on_init},
@@ -45,6 +46,7 @@ sub start {
 
         @_
     );
+    my $silent = delete $args{silent};
 
     my %connect = (
         LocalAddr => delete $args{server_host},
@@ -56,9 +58,9 @@ sub start {
     $d = HTTP::Daemon->new( %connect )
         || die "Can't start server on $connect{LocalAddr}:$connect{LocalPort}: $!";
 
-    warn "Сервер: ", $d->url, "\n";
+    warn "Сервер: ", $d->url, "\n" if !$silent;
 
-    $SIG{INT} = sub { warn "Bye...\n"; close($d) if $d; exit; };
+    $SIG{INT} = sub { !$silent and warn "Bye...\n"; close($d) if $d; exit; };
 
     while (my $_c = $d->accept) {
         while (my $r = $_c->get_request) {
