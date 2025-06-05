@@ -9,7 +9,7 @@ use File::Path qw(remove_tree);
 our $INSTANCE;
 
 sub new {
-    my ($class, %args) = @_;
+    my ($class, $model_type, %args) = @_;
     if ($args{force}) {
         undef $INSTANCE;
         delete $args{force};
