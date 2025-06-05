@@ -6,12 +6,44 @@ use JSON::XS;
 use Search::Xapian;
 use File::Path qw(remove_tree);
 
+our $INSTANCE;
+
 sub new {
+    my ($class, %args) = @_;
+    if ($args{force}) {
+        undef $INSTANCE;
+        delete $args{force};
+    }
+    return $INSTANCE ||= $class->_new(%args);
+}
+
+sub reset { undef $INSTANCE }
+sub is_initialized { return defined $INSTANCE }
+
+sub _new {
     my $pkg = shift;
-    my $self = bless { @_ }, $pkg;
+    my $model_type = shift;
+    my %args = @_;
+
+    my $self = bless {
+        %args,
+        model_type => $model_type,
+    }, $pkg;
 
     $self->{cfg} = GPBExim::Config->get();
+    $self->{xapian_max_search_result} = $self->{cfg}{xapian}{max_results};
+    $self->init();
+    $INSTANCE = $self;
 
+    return $self;
+}
+
+sub init {
+    my $self = shift;
+
+    if (my $super_destroy = $self->can('SUPER::DESTROY')) {
+        $self->$super_destroy();
+    }
     if ($self->{rm_xapian_db_on_init} and $self->{cfg}{xapian}{path} and -d $self->{cfg}{xapian}{path}) {
         delete $self->{xapian_db};
         delete $self->{indexed_xapian_email};
@@ -24,10 +56,9 @@ sub new {
         $self->{cfg}{xapian}{path},
         Search::Xapian::DB_CREATE_OR_OPEN
     );
-    $self->{xapian_max_search_result} = $self->{cfg}{xapian}{max_results};
-
-    return $self;
 }
+
+sub setup_schema { }
 
 sub _add_xapian_ngrams {
     my $self = shift;
@@ -123,18 +154,27 @@ sub search_email_by_email_substring {
     return [sort values %$results];
 }
 
+sub remove_db {
+    my $self = shift;
+    my $path = shift;
+
+    return unless -d $path;
+    remove_tree($path, { error => \my $err });
+    if (@$err) {
+        warn "Failed to remove Xapian index at $path: @$err\n";
+    }
+}
+
 sub destroy {
     my $self = shift;
 
-    if ($self->{cfg}{xapian}{clear_db_on_destroy} and $self->{cfg}{xapian}{path} and -d $self->{cfg}{xapian}{path}) {
+    if ($self->{cfg}{xapian}{clear_db_on_destroy} and $self->{cfg}{xapian}{path}) {
         delete $self->{xapian_db};
         delete $self->{indexed_xapian_email};
-        remove_tree($self->{cfg}{xapian}{path}, { error => \my $err });
-        if (@$err) {
-            warn "Failed to remove Xapian index at $self->{cfg}{xapian}{path}: @$err\n";
-        }
+        $self->remove_db($self->{cfg}{xapian}{path});
     };
 
+    undef $INSTANCE if $INSTANCE and $INSTANCE == $self;
 }
 
 1;

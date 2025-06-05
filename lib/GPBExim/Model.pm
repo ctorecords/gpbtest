@@ -7,15 +7,21 @@ use Try::Tiny;
 use DBI;
 use JSON::XS;
 use Scalar::Util::Numeric qw/isint/;
+use GPBExim;
 use GPBExim::Config;
 use GPBExim::Model::Xapian;
 
 sub new {
     my $pkg = shift;
-    my $self = bless { @_ }, $pkg;
+    my $model_type = shift;
+    my %args = @_;
+    my $self = bless {
+        cfg => GPBExim::Config->get(),
+        %args,
+        model_type=>$model_type,
+    }, $pkg;
 
-    $self->{cfg} = GPBExim::Config->get();
-    $self->init(@_);
+    $self->init(%args);
     $self->setup_dbh();
 
     return $self;
@@ -24,7 +30,6 @@ sub new {
 sub init {
     my $self = shift;
 
-    $self->{xapian} = GPBExim::Model::Xapian->new;
     $self->{oidstart} = $self->{cfg}{xapian}{oid_start};
 
     return $self;
@@ -191,8 +196,18 @@ sub sql_prepare {
 
 # code sugar: пусть будет просто поиск по e-mail.
 # Не зачем кому-то вникать, что под капотом для скороости Xapian
-sub search_email_by_substr { shift()->{xapian}->search_email_by_email_substring(@_) }
-sub search_id_by_substr    { shift()->{xapian}->search_id_by_email_substring(@_) }
+sub search_email_by_substr {
+    my $self = shift;
+
+    $self->{xapian} //= GPBExim::get_model('Xapian');
+    $self->{xapian}->search_email_by_email_substring(@_);
+}
+sub search_id_by_substr {
+    my $self = shift;
+
+    $self->{xapian} //= GPBExim::get_model('Xapian');
+    $self->{xapian}->search_id_by_email_substring(@_);
+}
 
 sub search_rows_by_substr {
     my $self   = shift;
@@ -224,7 +239,7 @@ sub DESTROY {
     # зафинишим все стейтменты
     $_->finish() for (values %{$self->{sth}});
 
-    $self->{xapian}->destroy();
+    $self->{xapian}->destroy() if $self->{xapian};
 
 }
 

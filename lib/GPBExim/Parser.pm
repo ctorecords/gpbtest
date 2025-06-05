@@ -68,6 +68,7 @@ sub parse_chunk {
     my $chunk = shift;
     my %args = @_;
 
+    my $xapian = GPBExim::get_model('Xapian');
     $model->sql_prepare;
 
     my @lines = split /\n/, $chunk;
@@ -89,10 +90,10 @@ sub parse_chunk {
                     $model->{sth}{insert_address}->execute($datetime, $email)
                         or die $model->{sth}{insert_address}->errstr;
                     $self->{emails}{$email}= $address_id = $model->{dbh}->last_insert_id;
-                    $model->{xapian}->index_address_at_xapian($email => $address_id, %args);
+                    $xapian->index_address_at_xapian($email => $address_id, %args);
                 }
                 elsif (!$self->{emails}{$email}) {
-                    $model->{xapian}->index_address_at_xapian($email => $address->{id});
+                    $xapian->index_address_at_xapian($email => $address->{id});
                     $self->{emails}{$email}= $address_id = $address->{id};
                 }
                 else {

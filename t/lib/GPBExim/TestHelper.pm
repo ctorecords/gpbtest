@@ -50,13 +50,14 @@ sub test_parse_chunk {
     );
 
     my $m = GPBExim::get_model(delete $args{model_type}, %args)->setup_schema();
+    my $x = GPBExim::get_model('Xapian', %args, debug => 1);
     my $v = GPBExim::View->new(model => $m);
     my $p = GPBExim::Parser->new();
 
     $p->parse_chunk($m => $chunk);
 
     my $message_address = $m->{dbh}->selectall_arrayref("select id, created, address from message_address", { Slice => {} });
-    my %xemails = map { $_->{address} => { orig => [$_->{id}], found=> $m->{xapian}->search_id_by_email_substring($_->{address}) } } @$message_address;
+    my %xemails = map { $_->{address} => { orig => [$_->{id}], found=> $x->search_id_by_email_substring($_->{address}) } } @$message_address;
     is_deeply($xemails{$_}{orig}, $xemails{$_}{found}, encode('UTF-8', qq{Check xapian index for "$_" ($title)}))
         for (keys %xemails);
 
@@ -81,6 +82,7 @@ sub test_parse_chunk {
         },
         encode('UTF-8', $title)
     );
+    $x->destroy;
 
 }
 
