@@ -40,17 +40,32 @@ sub test_parse_chunk {
     my $chunk = shift;
     my $hash  = shift;
     my $cfg = GPBExim::Config->get();
-    my %args  = (
+    my %args = (
         model_type => $cfg->{db}{model_type},
-        rm_xapian_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
-        rm_xapian_db_on_init    => $cfg->{xapian}{clear_db_on_init},
-        clear_db_on_init        => $cfg->{db}{clear_db_on_init},
-        clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
+        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
+        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
+        xapian__path                => $cfg->{xapian}{path},
+        xapian__min                 => $cfg->{xapian}{min},
+        xapian__max_results         => $cfg->{xapian}{max_results},
         @_
     );
+    my $model_type = delete $args{model_type};
+    my %args_db  = (
+        clear_db_on_init            => $args{db__clear_db_on_init},
+        clear_db_on_destroy         => $args{db__clear_db_on_destroy},
+    );
+    my %args_xapian  = (
+        clear_db_on_destroy         => $args{xapian__clear_db_on_destroy},
+        clear_db_on_init            => $args{xapian__clear_db_on_init},
+        path                        => $args{xapian__path},
+        min                         => $args{xapian__min},
+        max_results                 => $args{xapian__max_results},
+    );
 
-    my $m = GPBExim::get_model(delete $args{model_type}, %args)->setup_schema();
-    my $x = GPBExim::get_model('Xapian', %args, debug => 1);
+    my $m = GPBExim::get_model($model_type => %args_db)->setup_schema();
+    my $x = GPBExim::get_model(Xapian      => %args_xapian, debug => 1);
     my $v = GPBExim::View->new(model => $m);
     my $p = GPBExim::Parser->new();
 
@@ -82,7 +97,7 @@ sub test_parse_chunk {
         },
         encode('UTF-8', $title)
     );
-    $x->destroy;
+    $x->reset;
 
 }
 
@@ -91,12 +106,15 @@ sub test_search_in_parsed_logfile {
     my $fname    = shift;
     my $search_expected = shift;
     my $cfg = GPBExim::Config->get();
-    my %args  = (
+    my %args = (
         model_type => $cfg->{db}{model_type},
-        rm_xapian_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
-        rm_xapian_db_on_init    => $cfg->{xapian}{clear_db_on_init},
-        clear_db_on_init        => $cfg->{db}{clear_db_on_init},
-        clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
+        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
+        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
+        xapian__path                => $cfg->{xapian}{path},
+        xapian__min                 => $cfg->{xapian}{min},
+        xapian__max_results         => $cfg->{xapian}{max_results},
         @_
     );
 
@@ -115,12 +133,15 @@ sub test_search {
     my $search = shift;
     my $expected   = shift;
     my $cfg = GPBExim::Config->get();
-    my %args  = (
+    my %args = (
         model_type => $cfg->{db}{model_type},
-        rm_xapian_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
-        rm_xapian_db_on_init    => $cfg->{xapian}{clear_db_on_init},
-        clear_db_on_init        => $cfg->{db}{clear_db_on_init},
-        clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
+        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
+        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
+        xapian__path                => $cfg->{xapian}{path},
+        xapian__min                 => $cfg->{xapian}{min},
+        xapian__max_results         => $cfg->{xapian}{max_results},
         @_
     );
 

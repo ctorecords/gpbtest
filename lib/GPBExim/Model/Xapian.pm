@@ -14,10 +14,10 @@ sub new {
         undef $INSTANCE;
         delete $args{force};
     }
-    return $INSTANCE ||= $class->_new(%args);
+    return $INSTANCE ||= $class->_new($model_type, %args);
 }
 
-sub reset { undef $INSTANCE }
+sub reset { $INSTANCE->destroy(); undef $INSTANCE }
 sub is_initialized { return defined $INSTANCE }
 
 sub _new {
@@ -31,7 +31,6 @@ sub _new {
     }, $pkg;
 
     $self->{cfg} = GPBExim::Config->get();
-    $self->{xapian_max_search_result} = $self->{cfg}{xapian}{max_results};
     $self->init();
     $INSTANCE = $self;
 
@@ -44,16 +43,18 @@ sub init {
     if (my $super_destroy = $self->can('SUPER::DESTROY')) {
         $self->$super_destroy();
     }
-    if ($self->{rm_xapian_db_on_init} and $self->{cfg}{xapian}{path} and -d $self->{cfg}{xapian}{path}) {
-        delete $self->{xapian_db};
-        delete $self->{indexed_xapian_email};
-        remove_tree($self->{cfg}{xapian}{path}, { error => \my $err });
-        if (@$err) {
-            warn "Failed to remove Xapian index at $self->{cfg}{xapian}{path}: @$err\n";
+    delete $self->{xapian_db};
+    delete $self->{indexed_xapian_email};
+    if ($self->{clear_db_on_init} and $self->{path} and -d $self->{path}) {
+        if ($self->{clear_db_on_destroy} and $self->{path}) {
+            remove_tree($self->{path}, { error => \my $err });
+            if (@$err) {
+                warn "Failed to remove Xapian index at $self->{path}: @$err\n";
+            }
         }
     };
     $self->{xapian_db}  = Search::Xapian::WritableDatabase->new(
-        $self->{cfg}{xapian}{path},
+        $self->{path},
         Search::Xapian::DB_CREATE_OR_OPEN
     );
 }
@@ -66,7 +67,7 @@ sub _add_xapian_ngrams {
 
     my ($doc, $text, $prefix) = @_;
     $max = my $length = length($text);
-    for my $n ($self->{cfg}{xapian}{min} .. $max) {
+    for my $n ($self->{min} .. $max) {
         for my $i (0 .. $length - $n) {
             my $ngram = substr($text, $i, $n);
             $doc->add_term($prefix . $ngram);
@@ -133,7 +134,7 @@ sub search_id_by_email_substring {
     my $substring = shift;
     croak "substring is required" unless defined $substring;
     my %args      = (
-        limit => $self->{xapian_max_search_result},
+        limit => $self->{max_results},
         @_
     );
 
@@ -146,7 +147,7 @@ sub search_email_by_email_substring {
     my $substring = shift;
     croak "substring is required" unless defined $substring;
     my %args      = (
-        limit => $self->{xapian_max_search_result},
+        limit => $self->{max_results},
         @_
     );
 
@@ -168,10 +169,10 @@ sub remove_db {
 sub destroy {
     my $self = shift;
 
-    if ($self->{cfg}{xapian}{clear_db_on_destroy} and $self->{cfg}{xapian}{path}) {
+    if ($self->{clear_db_on_destroy} and $self->{path}) {
         delete $self->{xapian_db};
         delete $self->{indexed_xapian_email};
-        $self->remove_db($self->{cfg}{xapian}{path});
+        $self->remove_db($self->{path});
     };
 
     undef $INSTANCE if $INSTANCE and $INSTANCE == $self;

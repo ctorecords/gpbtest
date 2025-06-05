@@ -14,11 +14,35 @@ use GPBExim::Model::Xapian;
 sub new {
     my $pkg = shift;
     my $model_type = shift;
-    my %args = @_;
+    my $cfg = GPBExim::Config->get();
+    my %args = (
+        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
+        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
+        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
+        xapian__path                => $cfg->{xapian}{path},
+        xapian__min                 => $cfg->{xapian}{min},
+        xapian__max_results         => $cfg->{xapian}{max_results},
+        @_
+    );
+    my %args_db  = (
+        clear_db_on_init            => delete $args{db__clear_db_on_init},
+        clear_db_on_destroy         => delete $args{db__clear_db_on_destroy},
+    );
+    my %args_xapian  = (
+        clear_db_on_destroy         => delete $args{xapian__clear_db_on_destroy},
+        clear_db_on_init            => delete $args{xapian__clear_db_on_init},
+        path                        => delete $args{xapian__path},
+        min                         => delete $args{xapian__min},
+        max_results                 => delete $args{xapian__max_results},
+    );
+    GPBExim::get_model('Xapian', %args_xapian);
+
     my $self = bless {
-        cfg => GPBExim::Config->get(),
-        %args,
+        cfg => $cfg,
         model_type=>$model_type,
+        %args,
+        %args_db,
     }, $pkg;
 
     $self->init(%args);
@@ -198,15 +222,12 @@ sub sql_prepare {
 # Не зачем кому-то вникать, что под капотом для скороости Xapian
 sub search_email_by_substr {
     my $self = shift;
-
-    $self->{xapian} //= GPBExim::get_model('Xapian');
-    $self->{xapian}->search_email_by_email_substring(@_);
+    GPBExim::get_model('Xapian')->search_email_by_email_substring(@_);
 }
 sub search_id_by_substr {
     my $self = shift;
 
-    $self->{xapian} //= GPBExim::get_model('Xapian');
-    $self->{xapian}->search_id_by_email_substring(@_);
+    GPBExim::get_model('Xapian')->search_id_by_email_substring(@_);
 }
 
 sub search_rows_by_substr {
@@ -238,8 +259,6 @@ sub DESTROY {
 
     # зафинишим все стейтменты
     $_->finish() for (values %{$self->{sth}});
-
-    $self->{xapian}->destroy() if $self->{xapian};
 
 }
 
