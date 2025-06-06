@@ -267,10 +267,33 @@
           const td = document.createElement('td');
           td.dataset.key = key;
           if (key === 'str' && s.length > 0) {
-            td.innerHTML = row[key].replace(regex, m => `<mark>${m}</mark>`);
+            const m = row[key].match(/^(\S+) (<=|=>|\*\*|==|->)? ?<?([^>\s]+@[^>\:\s]+)?>?(.*?)$/);
+            if (m) {
+              const [_, int_id, flag, email, other] = m;
+              const emailMatch = row[key].includes(`<${email}>`);
+              const rawEmail = emailMatch ? `&lt;${email}&gt;` : email;
+
+              // делаем подсветку только по query, а не весь email
+              const highlightedEmail = email.toLowerCase() !== s.toLowerCase()
+                ? highlight(email, s)
+                : `<mark>${email}</mark>`;
+
+              // если текущий email НЕ совпадает с запросом — оборачиваем в ссылку
+              let emailDisplay = (email.toLowerCase() !== s.toLowerCase())
+                ? `<a href="#" style="text-decoration: underline dotted;" onclick="searchEmail('${email}'); return false;">${highlightedEmail}</a>`
+                : highlightedEmail;
+
+              if (emailMatch) {
+                emailDisplay = `&lt;${emailDisplay}&gt;`;
+              }
+              td.innerHTML = `${int_id} ${flag || ''} ${emailDisplay}${other}`;
+            } else {
+              td.textContent = row[key];
+            }
           } else {
             td.textContent = row[key];
           }
+
           tr.appendChild(td);
         });
         table.appendChild(tr);
@@ -285,6 +308,11 @@
           table.appendChild(notice);
         }
       });
+    }
+    function searchEmail(email) {
+      const inputEl = document.querySelector('input[name="s"]');
+      inputEl.value = email;
+      submitForm(null);
     }
   </script>
 </body>
