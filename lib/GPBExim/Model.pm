@@ -128,11 +128,13 @@ sub txn {
 sub get_o_id {
     my $self = shift;
 
+    $self->{sth}{get_next_o_id}//=$self->{dbh}->prepare_cached("select v from vars where n='o_id'");
+    $self->{sth}{set_next_o_id}//=$self->{dbh}->prepare_cached("update vars set v=? where n='o_id'");
+
     if (!defined $self->{o_id}) {
-        $self->{sth}{get_next_o_id}=$self->{dbh}->prepare_cached("select v from vars where n='o_id'");
-        $self->{sth}{set_next_o_id}=$self->{dbh}->prepare_cached("update vars set v=? where n='o_id'");
         $self->{sth}{get_next_o_id}->execute;
         $self->{o_id} = $self->{sth}{get_next_o_id}->fetchrow_array;
+        $self->{sth}{get_next_o_id}->finish;
     }
     return int($self->{o_id});
 }
@@ -140,7 +142,7 @@ sub get_o_id {
 sub get_next_o_id {
     my $self = shift;
 
-    $self->{o_id} //= $self->get_o_id();
+    $self->{o_id} = $self->get_o_id();
     $self->{o_id}=int($self->{o_id})+1;
     $self->{sth}{set_next_o_id}->execute($self->{o_id});
     $self->{sth}{set_next_o_id}->finish;

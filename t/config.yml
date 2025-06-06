@@ -20,7 +20,7 @@ xapian:
 ui:
   max_results: 6
   server_port: 8080
-  server_host: "0.0.0.0"
+  server_host: "localhost"
   template_path: 'templates/search.html'
   
 parser:

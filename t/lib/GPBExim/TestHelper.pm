@@ -27,6 +27,7 @@ our @EXPORT_OK = qw(
     test_search_in_parsed_logfile
     test_live_search_in_parsed_logfile
     test_search
+    test_live_search
     cq
 );
 
@@ -205,6 +206,9 @@ sub test_live_search_in_parsed_logfile {
 
             # тест живого сервера
             ok($res->is_success, encode('UTF-8', "Ответ на запрос '$req_json' от сервера $url получен"));
+            my $got = decode_json($res->decoded_content);
+            my $exp = $search_expected->{$s}{$handle};
+            #warn dumper({got=>$got, exp=>$exp});
             is_deeply(decode_json($res->decoded_content), $search_expected->{$s}{$handle}, encode('UTF-8', "$title (live server - $handle): $s"));
 
             # тест модели
@@ -243,6 +247,62 @@ sub test_search {
         $expected,
         encode('UTF-8', $title),
     );
+}
+
+sub test_live_search {
+    my $title  = shift;
+    my $chunk  = shift;
+    my $search = shift;
+    my $expected   = shift;
+    my $cfg = GPBExim::Config->get();
+    my %args = (
+        model_type => $cfg->{db}{model_type},
+        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
+        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
+        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
+        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
+        xapian__path                => $cfg->{xapian}{path},
+        xapian__min                 => $cfg->{xapian}{min},
+        xapian__max_results         => $cfg->{xapian}{max_results},
+        @_
+    );
+
+    (my $app = GPBExim::App->new()->init(%args))->{model}->setup_schema;
+    GPBExim::Parser->new()->parse_chunk($app->{model} => $chunk, xdebug => 1);
+
+    my $port = get_free_port();
+    my $host = $cfg->{ui}{server_host};
+    my $pid;
+    $pid = fork();
+    if (!defined $pid) {
+        die "Не удалось сделать fork: $!";
+    }
+    elsif($pid == 0) {
+        $SIG{INT} = sub { exit(0) };
+        $app->start(
+            server_port => $port,
+            server_host => $host,
+            silent => 1,
+        );
+        exit 0;
+    }
+    sleep 0.3 until server_is_up($host, $port);
+    my $ua = LWP::UserAgent->new(timeout => 2);
+
+    my $req_json = encode_json({ s => $search });
+    my $handle = 'search';
+    my $url = "http://$host:$port/$handle";
+    my $res = $ua->request(cq($search, $url));
+
+    # тест живого сервера
+    ok($res->is_success, encode('UTF-8', "Ответ на запрос '$req_json' от сервера $url получен"));
+    is_deeply(decode_json($res->decoded_content), $expected, encode('UTF-8', "$title (live server - $handle): $search"));
+
+    # тест модели
+    is_deeply($app->handle_request(cq($search), xdebug=>1), $expected, encode('UTF-8', $title));
+
+    kill 'INT', $pid;
+    waitpid($pid, 0);
 }
 
 
