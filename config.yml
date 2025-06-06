@@ -5,9 +5,9 @@ db:
   model_type: MySQL
   name: gpbexim
   host: 127.0.0.1
+  port: 3306
   user: root
   password: 'SuperStrongPass!'
-  port: 3306
 
   # путь от файла конфига
   schema_path: schema/MySQL.sql

@@ -24,12 +24,7 @@ my $cfg = GPBExim::Config->get();
 my $model;
 my $parser;
 
-$model = GPBExim::get_model($cfg->{db}{model_type},
-        rm_xapian_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
-        rm_xapian_db_on_init    => $cfg->{xapian}{clear_db_on_init},
-        clear_db_on_init        => $cfg->{db}{clear_db_on_init},
-        clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
-);
+$model = GPBExim::get_model($cfg->{db}{model_type});
 $model->setup_schema() unless $no_setup;
 $parser = GPBExim::Parser->new();
 

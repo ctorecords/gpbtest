@@ -15,32 +15,28 @@ sub new {
     my $pkg = shift;
     my $model_type = shift;
     my $cfg = GPBExim::Config->get();
-    my %args = (
-        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
-        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
-        db__schema_path             => $cfg->{db}{schema_path},
-        db__path                    => $cfg->{db}{path} // '',
-        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
-        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
-        xapian__path                => $cfg->{xapian}{path},
-        xapian__min                 => $cfg->{xapian}{min},
-        xapian__max_results         => $cfg->{xapian}{max_results},
-        @_
-    );
-    my %args_db  = (
-        clear_db_on_init            => delete $args{db__clear_db_on_init},
-        clear_db_on_destroy         => delete $args{db__clear_db_on_destroy},
-        schema_path                 => delete $args{db__schema_path},
-        path                        => delete $args{db__path},
-    );
-    my %args_xapian  = (
-        clear_db_on_destroy         => delete $args{xapian__clear_db_on_destroy},
-        clear_db_on_init            => delete $args{xapian__clear_db_on_init},
-        path                        => delete $args{xapian__path},
-        min                         => delete $args{xapian__min},
-        max_results                 => delete $args{xapian__max_results},
-    );
-    GPBExim::get_model('Xapian', %args_xapian);
+
+    my %_args;
+    for my $div (grep {/^(db|xapian)/} keys %$cfg) {
+        for my $key (keys %{$cfg->{$div}}) {
+            $_args{$div.'__'.$key}=$cfg->{$div}{$key} // '';
+        }
+    };
+    my %args = ( %_args, @_ ); %_args=();
+    my %args_db;
+    for my $_key (grep {/^db__/} keys %args) {
+        my $key = $_key; $key =~ s/^db__//g;
+        $args_db{$key}=delete $args{$_key};
+    }
+    my %args_xapian;
+    for my $_key (grep {/^xapian__/} keys %args) {
+        my $key = $_key; $key =~ s/^xapian__//g;
+        $args_xapian{$key}=delete $args{$_key};
+    }
+
+    if (%args_xapian or $model_type eq 'Xapian') {
+        GPBExim::Model::Xapian->new('Xapian', %args_xapian, $model_type eq 'Xapian' ? %args : ());
+    }
 
     my $self = bless {
         cfg => $cfg,
