@@ -21,7 +21,6 @@ WriteMakefile(
         'HTTP::Status'          => 0,
         'Scalar::Util::Numeric' => 0,
         'Config::Any'           => 0,
-        'Getopt::Long'          => 0,
         'LWP::UserAgent'        => 0,
         'HTTP::Request::Common' => 0,
         'IO::Socket::INET'      => 0,

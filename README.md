@@ -56,24 +56,28 @@
 Перед установкой убедитесь, что установлены:
 
 ```bash
-sudo apt install libmysqlclient-dev libxapian-dev
+sudo apt install libdbi-perl libdbd-sqlite3-perl libdbd-mysql-perl libtemplate-perl libhttp-message-perl libwww-perl libsearch-xapian-perl libxapian-dev libmysqlclient-dev
+
 ````
 
 Перловые модули:
 
-* DBI, DBD::SQLite, DBD::mysql
-* Test::More, Try::Tiny, Template
-* lib::abs, uni::perl, Getopt::Long
-* Search::Xapian, HTTP::Status
-* Scalar::Util::Numeric, Config::Any
+```bash
+cpanm \
+  lib::abs uni::perl Try::Tiny \
+  Config::Any Scalar::Util::Numeric \
+  Log::Any Log::Any::Adapter Log::Log4perl \
+  Log::Any::Adapter::Log4perl Log::Log4perl::Layout::JSON
 
-Можно установить через `cpanm`, `carton` или вручную.
+```
 
 ---
 
 ### 2. Конфигурация
 
 Дефолтное состояние конфигов готов к работе из коробки в файлах `./config.yml` и `./t/config.yml`
+
+Важно убедиться, что доступы к MySQL в ./config.yml были рабочими.
 
 ---
 
