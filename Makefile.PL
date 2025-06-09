@@ -26,7 +26,11 @@ WriteMakefile(
         'HTTP::Request::Common' => 0,
         'IO::Socket::INET'      => 0,
         'Time::HiRes'           => 0,
-
+        'Log::Any'              => 0,
+        'Log::Any::Adapter'     => 0,
+        'Log::Log4perl'         => 0,
+        'Log::Any::Adapter::Log4perl' => 0,
+        'Log::Log4perl::Layout::JSON' => 0,
     },
     test => { TESTS => 't/*.t' },
 );

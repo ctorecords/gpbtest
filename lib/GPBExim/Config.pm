@@ -6,8 +6,13 @@ use File::Spec;
 use Cwd qw(abs_path);
 use File::Basename qw(dirname);
 use Carp;
+use Log::Log4perl;
+use Log::Any;
+use Log::Any::Adapter;
+
 
 my $CONFIG;
+my $LOGGER;
 
 sub get {
     return $CONFIG if $CONFIG;
@@ -25,7 +30,36 @@ sub get {
 
     _resolve_paths($CONFIG, $config_dir);
 
+    if (my $log_cfg = $CONFIG->{log}) {
+        my $log_section;
+
+        # Выбор конфигурации логгера: pattern или json
+        if ($log_cfg->{use} && $log_cfg->{use} eq 'json') {
+            $log_section = $log_cfg->{log4perl_json};
+        } else {
+            $log_section = $log_cfg->{log4perl};
+        }
+
+        if ($log_section && ref $log_section eq 'HASH') {
+            my $root = 'log4perl.rootLogger';
+            my $log_conf_str = join "\n", "$root=$log_section->{$root}",
+                map { "$_=$log_section->{$_}" }
+                sort grep { $_ ne $root } keys %$log_section;
+
+            Log::Log4perl::init(\$log_conf_str);
+            Log::Any::Adapter->set('Log4perl');
+            $LOGGER = Log::Any->get_logger();
+        } else {
+            warn "Логгер не настроен: отсутствует секция log4perl или log4perl_json в конфиге"
+        }
+        delete $CONFIG->{log};
+    }
+
     return $CONFIG;
+}
+
+sub logger {
+    return $LOGGER //= Log::Any->get_logger();
 }
 
 sub _resolve_paths {

@@ -2,6 +2,7 @@ package GPBExim::Controller;
 use uni::perl ':dumper';
 use lib::abs '../../lib';
 use GPBExim::Config;
+use GPBExim::Log;
 use JSON::XS;
 
 
@@ -32,10 +33,12 @@ sub suggest {
     # получим поисковую строку по e-mail
     my $email = $rdata->{s}
         or return $return;
+    log(debug => "Suggest for '$email'");
 
     # получим список e-mail адресов
     my $emails = $m->search_email_by_substr($email);
     return $return if (!@$emails);
+    log(debug => "Found for '$email' @{[$#$emails+1]} emails");
 
     push @{$return->{data}}, {address => $_} for @$emails;
 
@@ -59,9 +62,12 @@ sub search {
     # получим поисковую строку по e-mail
     my $email = $rdata->{s}
         or return $return;
+    log(debug => "Search for '$email'");
 
     # получим список строчек log и message, связанных с $email
     $return->{data} = $m->search_rows_by_substr($email) // [];
+    my $count = @{$return->{data}};
+    log(debug => "Found for '$email' $count rows");
 
     return $return;
 }

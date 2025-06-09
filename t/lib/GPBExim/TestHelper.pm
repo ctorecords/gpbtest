@@ -5,12 +5,15 @@ use JSON::XS;
 
 use uni::perl ':dumper';
 use lib::abs '../../../lib';
+
 use GPBExim;
+use GPBExim::App;
 use GPBExim::Controller;
 use GPBExim::Parser;
 use GPBExim::View;
 use GPBExim::Config;
-use GPBExim::App;
+use GPBExim::Log;
+
 use HTTP::Request;
 use LWP::UserAgent;
 use HTTP::Request::Common qw(POST);
@@ -284,6 +287,7 @@ sub test_live_search {
             server_host => $host,
             silent => 1,
         );
+        log(debug => "Start webserver http://$host:$port/");
         exit 0;
     }
     sleep 0.3 until server_is_up($host, $port);
@@ -293,6 +297,7 @@ sub test_live_search {
     my $handle = 'search';
     my $url = "http://$host:$port/$handle";
     my $res = $ua->request(cq($search, $url));
+    log(debug => "Toggle handle $url", {Response=>$res});
 
     # тест живого сервера
     ok($res->is_success, encode('UTF-8', "Ответ на запрос '$req_json' от сервера $url получен"));
@@ -303,6 +308,8 @@ sub test_live_search {
 
     kill 'INT', $pid;
     waitpid($pid, 0);
+    log(debug => "Stop webserver http://$host:$port/");
+
 }
 
 

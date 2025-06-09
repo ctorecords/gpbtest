@@ -10,6 +10,7 @@ use lib::abs '../../lib';
 use GPBExim;
 use GPBExim::Controller;
 use GPBExim::View;
+use GPBExim::Log;
 
 our $d;
 
@@ -93,6 +94,7 @@ sub handle_request {
 
     my ($method, $path, $content) = ($r->method, $r->uri->path, $r->content);
 
+    log(debug => "Webserver [$method] $path");
     if ($method eq 'GET' && $path eq "/") {
         $return = $self->{controller}->root($r, $self->{model}, %args);
     } elsif ($method eq 'POST' && $path eq "/search") {
@@ -105,7 +107,5 @@ sub handle_request {
 
     return $return;
 }
-
-#DESTROY { my $self = shift; warn "Bye...\n"; close($d) if $d };
 
 1;

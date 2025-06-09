@@ -2,6 +2,7 @@ package GPBExim::Parser;
 use uni::perl ':dumper';
 use lib::abs '../../lib';
 use GPBExim::Config;
+use GPBExim::Log;
 use JSON::XS;
 
 
@@ -43,7 +44,7 @@ sub parse_logfile {
     my $model     = shift;
 
     my %args = ( @_ );
-
+    log(debug => 'Start parse file %s', $file_path );
     if (my $LOG_FH = $self->open_log($file_path)) {
         my $chunk_counter = 0;
 
@@ -59,6 +60,7 @@ sub parse_logfile {
         };
 
         $self->close_log($LOG_FH);
+        log(debug => 'Finish parse %s', $file_path );
     }
 }
 

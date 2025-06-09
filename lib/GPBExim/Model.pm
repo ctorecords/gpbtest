@@ -231,6 +231,9 @@ sub search_id_by_substr {
 
     GPBExim::get_model('Xapian')->search_id_by_email_substring(@_);
 }
+sub emails_indexed_counter {
+    return GPBExim::get_model('Xapian')->{xapian_db}->get_doccount;
+}
 
 sub search_rows_by_substr {
     my $self   = shift;

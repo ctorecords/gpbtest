@@ -26,3 +26,18 @@ ui:
 parser:
   max_chunks:  1048576  # 1024*1024
   chunk_size: 10485760  # 1024*1024*10
+
+log:
+  use: pattern  # or 'json'
+  log4perl:
+    log4perl.rootLogger: INFO, Screen
+    log4perl.appender.Screen: Log::Log4perl::Appender::Screen
+    log4perl.appender.Screen.stderr: 1
+    log4perl.appender.Screen.layout: PatternLayout
+    log4perl.appender.Screen.layout.ConversionPattern: "[%d] [%p] %m%n"
+
+  log4perl_json:
+    log4perl.rootLogger: INFO, Screen
+    log4perl.appender.Screen: Log::Log4perl::Appender::Screen
+    log4perl.appender.Screen.stderr: 1
+    log4perl.appender.Screen.layout: GPBExim::Log::JSONLayout

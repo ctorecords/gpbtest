@@ -4,6 +4,7 @@ use uni::perl ':dumper';
 use GPBExim;
 use GPBExim::Parser;
 use GPBExim::Config;
+use GPBExim::Log;
 use Getopt::Long;
 use Cwd qw(abs_path);
 
@@ -20,28 +21,15 @@ $logfile = abs_path($logfile) or die "Не удалось определить �
 -f $logfile or die "Файл '$logfile' не существует или не является обычным файлом\n";
 
 my $cfg = GPBExim::Config->get();
-
+log(info => "User asks to parse file %s", $logfile);
 my $model;
 my $parser;
 
+log(debug => "Get model %s", $cfg->{db}{model_type});
 $model = GPBExim::get_model($cfg->{db}{model_type});
+log(debug => "Setup schema %s", $model->{schema_path});
 $model->setup_schema() unless $no_setup;
 $parser = GPBExim::Parser->new();
 
-
-if (my $LOG_FH = $parser->open_log($logfile)) {
-    my $chunk_counter = 0;
-
-    # читаем лог чанками
-    CHUNKS: while (!eof($LOG_FH) and ++$chunk_counter<$parser->{max_chunks} ) {
-        # ... и внутри чанка транзакциями обновляем БД
-        my $chunk = $parser->get_next_chunk_from_log($LOG_FH)
-            or last CHUNKS;
-        $model->txn(sub {
-            my %args = @_;
-            $parser->parse_chunk($model => $chunk, @_);
-        });
-    };
-
-    $parser->close_log($LOG_FH);
-}
+$parser->parse_logfile($logfile => $model);
+log(info => "Indexed emails: %d", $model->emails_indexed_counter);
