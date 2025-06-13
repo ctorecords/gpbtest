@@ -56,15 +56,15 @@
 Перед установкой убедитесь, что установлены:
 
 ```bash
-sudo apt install libdbi-perl libdbd-sqlite3-perl libdbd-mysql-perl libtemplate-perl libhttp-message-perl libwww-perl libsearch-xapian-perl libxapian-dev libmysqlclient-dev
+sudo apt install libdbi-perl libdbd-sqlite3-perl libdbd-mysql-perl libtemplate-perl libhttp-message-perl libwww-perl libsearch-xapian-perl libxapian-dev libmysqlclient-dev build-essential
 
 ````
 
 Перловые модули:
 
 ```bash
-cpanm \
-  lib::abs uni::perl Try::Tiny \
+cpanm -fn \
+  YAML::XS JSON::XS lib::abs uni::perl Try::Tiny \
   Config::Any Scalar::Util::Numeric \
   Log::Any Log::Any::Adapter Log::Log4perl \
   Log::Any::Adapter::Log4perl Log::Log4perl::Layout::JSON
