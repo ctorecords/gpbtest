@@ -34,3 +34,11 @@ WriteMakefile(
     test => { TESTS => 't/*.t' },
 );
 
+package MY;
+
+sub postamble {
+    return <<'END';
+testconn :
+	$(PERL) bin/testconn.pl || (echo "===> Database connection test failed" && exit 1)
+END
+}
