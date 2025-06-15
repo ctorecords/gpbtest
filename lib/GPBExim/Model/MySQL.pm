@@ -5,6 +5,8 @@ use uni::perl ':dumper';
 use parent 'GPBExim::Model';
 use Try::Tiny;
 
+use GPBExim::Log;
+
 use DBI;
 # CREATE DATABASE gpbexim CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -26,6 +28,7 @@ sub init {
 sub clear_all_tables {
     my $self = shift;
 
+    log(debug => 'MySQL clearing all tables');
     $self->{dbh}->do('SET FOREIGN_KEY_CHECKS = 0');
     for my $table (map {@$_} @{$self->{dbh}->selectall_arrayref("show tables")}) {
         $self->{dbh}->do("drop table $table");

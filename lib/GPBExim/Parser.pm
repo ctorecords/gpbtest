@@ -156,7 +156,7 @@ sub parse_chunk {
                             last EMAILSEARCH;
                         }
                     }
-                    # если email для bounce не определён, то кидаем его бед address_id на случай,
+                    # если email для bounce не определён, то кидаем его без address_id на случай,
                     # когда в будущем в логе докинут данные по нему
                     if (!$email_found_for_bounce) {
                         $model->{sth}{insert_message_bounce}->execute($datetime, $int_id, undef, $stripped_line, $model->get_next_o_id)

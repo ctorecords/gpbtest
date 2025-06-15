@@ -28,7 +28,10 @@ my $parser;
 log(debug => "Get model %s", $cfg->{db}{model_type});
 $model = GPBExim::get_model($cfg->{db}{model_type});
 log(debug => "Setup schema %s", $model->{schema_path});
-$model->setup_schema() unless $no_setup;
+if (!$no_setup) {
+    $model->clear_all_tables;
+    $model->setup_schema();
+}
 $parser = GPBExim::Parser->new();
 
 $parser->parse_logfile($logfile => $model);
