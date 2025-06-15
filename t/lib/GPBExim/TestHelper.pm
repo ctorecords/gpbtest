@@ -310,7 +310,7 @@ sub cq {
   my $req = HTTP::Request->new(POST => ($handle || '/search'));
     $req->header('Content-Type' => 'application/json');
     $req->content(encode_json({ s => $search, %params }));
-    log(info=>$req);
+    log(debug=> cq => $req);
 
   return $req;
 }
