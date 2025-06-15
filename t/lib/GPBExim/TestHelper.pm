@@ -219,6 +219,11 @@ sub test_live_search_in_parsed_logfile {
 
 sub test_search {
     my $title  = shift;
+    my %add_params_to_request;
+    if (ref($_[0])) {
+        %add_params_to_request = %{$_[0]};
+        shift;
+    }
     my $chunk  = shift;
     my $search = shift;
     my $expected   = shift;
@@ -233,7 +238,7 @@ sub test_search {
         ->{model}->setup_schema;
     GPBExim::Parser->new()->parse_chunk($app->{model} => $chunk, xdebug => 1);
 
-    my $got = $app->handle_request(cq($search), xdebug => 1);
+    my $got = $app->handle_request(cq($search, '/search', %add_params_to_request), xdebug => 1);
     is_deeply(
         $got,
         $expected,
@@ -300,10 +305,12 @@ sub test_live_search {
 sub cq {
   my $search = shift;
   my $handle = shift;
+  my %params = @_;
 
   my $req = HTTP::Request->new(POST => ($handle || '/search'));
     $req->header('Content-Type' => 'application/json');
-    $req->content(encode_json({ s => $search }));
+    $req->content(encode_json({ s => $search, %params }));
+    log(info=>$req);
 
   return $req;
 }

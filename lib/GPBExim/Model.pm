@@ -141,14 +141,15 @@ sub get_rows_on_address_id {
     $limit =  $args{ui__max_results} + 1 if $limit > $args{ui__max_results} + 1;
     log(debug => {limit=>$limit});
 
-    my $return = $self->{dbh}->selectall_arrayref(
-            join (' union ',
-                map { qq{
-                    select created, str, int_id, o_id, '$_' as t
-                    from $_ where address_id in (@{[ join(', ', map { '?' } @$ids) ]})
-                } } @$tables
-            ). " order by @{[$self->sql_order_str('int_id')]}, o_id asc limit $limit",
-            { Slice => {} },  map { @$ids } @$tables );
+    my $sql = join (' union ',
+        map { qq{
+            select created, str, int_id, o_id, '$_' as t
+            from $_ where address_id in (@{[ join(', ', map { '?' } @$ids) ]})
+        } } @$tables
+    ). " order by @{[$self->sql_order_str('int_id')]}, o_id asc limit $limit";
+    log(debug => "get rows sql: %s", $sql);
+    log(debug => "search from tables: ", $tables);
+    my $return = $self->{dbh}->selectall_arrayref( $sql => { Slice => {} },  map { @$ids } @$tables );
 
     $args{debug} &&
         warn dumper($return);
@@ -228,7 +229,14 @@ sub search_rows_by_substr {
     return if (!@$ids);
 
     log(debug => "search_rows_by_substr: ", $args->{x}{ui}{max_results});
-    my $return_data = $self->get_rows_on_address_id([qw/log message/], $ids,
+    my @tables = qw/log message/;
+
+    # добавляем в поиск таблицу с bounce, если опция включена
+    # (требуется из-за неоднозначности ТЗ)
+    $args{include_bounce} and
+        push @tables, 'message_bounce';
+
+    my $return_data = $self->get_rows_on_address_id(\@tables, $ids,
         limit => $args->{x}{ui}{max_results}+1,
         %{ $args->{raw}{ui} }
     );

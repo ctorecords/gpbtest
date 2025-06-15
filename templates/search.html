@@ -107,6 +107,24 @@
       text-align: center;
       padding: 0.75rem;
     }
+    td[data-key="str"] {
+      position: relative;
+    }
+
+    td[data-key="str"] .meta {
+      position: absolute;
+      top: 0.25rem;
+      right: 0.5rem;
+      font-size: 0.65rem;
+      color: #f0f0f0;
+      background-color: #888;
+      padding: 0 0.4em;
+      border-radius: 4px;
+      font-style: normal;
+      opacity: 0.85;
+      pointer-events: none;
+      white-space: nowrap;
+    }
 
   </style>
 </head>
@@ -114,6 +132,9 @@
   <h1>Поиск по email</h1>
 
   <form onsubmit="submitForm(event)" autocomplete="off">
+    <label style="display:block; margin: 0.5rem 0;">
+      <input type="checkbox" id="include-bounce"> Включить строки bounce
+    </label>
     <input type="text" name="s" placeholder="Введите email" oninput="suggest(this)" onkeydown="handleKey(event)" autofocus>
     <div id="suggestions"></div>
   </form>
@@ -236,10 +257,11 @@
       if (event) event.preventDefault();
 
       const s = input.value.trim();
+      const includeBounce = document.getElementById('include-bounce').checked;
       const res = await fetch('/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ s })
+        body: JSON.stringify({ s, include_bounce: includeBounce ? 1 : 0 })
       });
 
       const json = await res.json();
@@ -268,32 +290,31 @@
           td.dataset.key = key;
           if (key === 'str' && s.length > 0) {
             const m = row[key].match(/^(\S+) (<=|=>|\*\*|==|->)? ?<?([^>\s]+@[^>\:\s]+)?>?(.*?)$/);
-            if (m) {
+            if (m && m[3]) {
               const [_, int_id, flag, email, other] = m;
               const emailMatch = row[key].includes(`<${email}>`);
-              const rawEmail = emailMatch ? `&lt;${email}&gt;` : email;
-
-              // делаем подсветку только по query, а не весь email
               const highlightedEmail = email.toLowerCase() !== s.toLowerCase()
                 ? highlight(email, s)
                 : `<mark>${email}</mark>`;
-
-              // если текущий email НЕ совпадает с запросом — оборачиваем в ссылку
               let emailDisplay = (email.toLowerCase() !== s.toLowerCase())
                 ? `<a href="#" style="text-decoration: underline dotted;" onclick="searchEmail('${email}'); return false;">${highlightedEmail}</a>`
                 : highlightedEmail;
+              if (emailMatch) emailDisplay = `&lt;${emailDisplay}&gt;`;
+              td.innerHTML = `
+                <div class="meta">${row.t || ''}</div>
+                ${int_id} ${flag || ''} ${emailDisplay}${other}
+              `;
 
-              if (emailMatch) {
-                emailDisplay = `&lt;${emailDisplay}&gt;`;
-              }
-              td.innerHTML = `${int_id} ${flag || ''} ${emailDisplay}${other}`;
             } else {
-              td.textContent = row[key];
+              td.innerHTML = `
+                <div class="meta">${row.t || ''}</div>
+                ${highlight(row[key], s)}
+              `;
+
             }
           } else {
             td.textContent = row[key];
           }
-
           tr.appendChild(td);
         });
         table.appendChild(tr);
@@ -314,6 +335,12 @@
       inputEl.value = email;
       submitForm(null);
     }
+    document.getElementById('include-bounce').addEventListener('change', () => {
+      const val = input.value.trim();
+      if (val.length > 0) {
+        submitForm(null);
+      }
+    });
   </script>
 </body>
 </html>

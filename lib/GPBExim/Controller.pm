@@ -65,8 +65,11 @@ sub search {
     log(debug => "Search for '$email'");
     log(debug => {args=>\%args});
 
+    # флаг "включить bounce"
+    my $include_bounce = (defined $rdata->{include_bounce} and $rdata->{include_bounce} > 0) ? 1 : 0;
+
     # получим список строчек log и message, связанных с $email
-    $return->{data} = $m->search_rows_by_substr($email, %args) // [];
+    $return->{data} = $m->search_rows_by_substr($email, include_bounce => $include_bounce, %args) // [];
     my $count = @{$return->{data}};
     log(debug => "Found for '$email' $count rows");
 
