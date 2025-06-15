@@ -9,12 +9,30 @@ use JSON::XS;
 sub new {
     my $pkg = shift;
     my $cfg = GPBExim::Config->get();
-    my $self = bless {
-        max_chunks => $cfg->{parser}{max_chunks},
-        chunk_size => $cfg->{parser}{chunk_size},
-        cfg => $cfg,
 
+    my %_args;
+    for my $div (grep {/^parser/} keys %$cfg) {
+        for my $key (keys %{$cfg->{$div}}) {
+            $_args{$div.'__'.$key}=$cfg->{$div}{$key} // '';
+        }
+    };
+
+    my %args = (
+        %_args,
         @_
+    );
+
+    my $xargs; my $raw_args;
+    for my $div (qw/parser/) {
+        for my $_key (grep {/^$div\_\_/} keys %args) {
+            my $key = $_key; $key =~ s/^$div\_\_//g;
+            $raw_args->{$div}{$_key} = $xargs->{$div}{$key}= delete $args{$_key};
+        }
+    }
+
+    my $self = bless {
+        %{$xargs->{parser}},
+        cfg => $cfg,
     }, $pkg;
 
     return $self;

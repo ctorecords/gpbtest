@@ -63,9 +63,10 @@ sub search {
     my $email = $rdata->{s}
         or return $return;
     log(debug => "Search for '$email'");
+    log(debug => {args=>\%args});
 
     # получим список строчек log и message, связанных с $email
-    $return->{data} = $m->search_rows_by_substr($email) // [];
+    $return->{data} = $m->search_rows_by_substr($email, %args) // [];
     my $count = @{$return->{data}};
     log(debug => "Found for '$email' $count rows");
 
@@ -79,8 +80,10 @@ sub root {
     my %args = @_;
 
     $args{testit} && return { render => undef, data => {} };
+    my $data = { max_results => $args{ui__max_results} };
+    log(debug => "root ", { data => $data, args => \%args });
 
-    return { render => 'TT',  data => { max_results => $self->{cfg}{ui}{max_results} }, template => $self->{cfg}{ui}{template_path}  };
+    return { render => 'TT',  data => $data, template => $args{ui__template_path}  };
 };
 
 1;

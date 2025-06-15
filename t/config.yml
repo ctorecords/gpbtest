@@ -18,6 +18,7 @@ xapian:
   clear_db_on_destroy: 1  # чистим Xapian после работы
 
 ui:
+  silent: 1
   max_results: 6
   server_port: 8080
   server_host: "localhost"

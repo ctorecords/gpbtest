@@ -16,9 +16,14 @@ our $d;
 
 sub new {
     my $pkg  = shift;
+    my $args = GPBExim::Config->apply_args(
+        [qw/ui/],
+        @_
+    );
 
     my $self = bless {
         cfg => GPBExim::Config->get(),
+        %{$args->{x}{ui}},
     }, $pkg;
     return $self;
 }
@@ -27,34 +32,19 @@ sub start {
     my $self = shift;
 
     my $cfg  = $self->{cfg};
-    my %args  = (
-        silent                  => 0,
-        model_type              => $self->{cfg}{db}{model_type},
-
-        db__clear_db_on_init    => $cfg->{db}{clear_db_on_init},
-        db__clear_db_on_destroy => $cfg->{db}{clear_db_on_destroy},
-        db__schema_path         => $cfg->{db}{schema_path},
-        db__path                => $cfg->{db}{path} // '',
-
-        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
-        xapian__clear_db_on_init => $cfg->{xapian}{clear_db_on_init},
-        xapian__path            => $cfg->{xapian}{path},
-        xapian__min             => $cfg->{xapian}{min},
-        xapian__max_results     => $cfg->{xapian}{max_results},
-
-        server_host             => $self->{cfg}{ui}{server_host},
-        server_port             => $self->{cfg}{ui}{server_port},
-
+    my $args = GPBExim::Config->apply_args(
+        [qw/db xapian ui/],
         @_
     );
-    my $silent = delete $args{silent};
+
+    my $silent = delete $args->{x}{ui}{silent};
 
     my %connect = (
-        LocalAddr => delete $args{server_host},
-        LocalPort => delete $args{server_port},
+        LocalAddr => delete $args->{x}{ui}{server_host},
+        LocalPort => delete $args->{x}{ui}{server_port},
     );
 
-    $self->init(%args);
+    $self->init(map { %{$args->{raw}{$_}} }  qw/db xapian/);
 
     $d = HTTP::Daemon->new( %connect )
         || die "Can't start server on $connect{LocalAddr}:$connect{LocalPort}: $!";
@@ -65,7 +55,8 @@ sub start {
 
     while (my $_c = $d->accept) {
         while (my $r = $_c->get_request) {
-            my $data = $self->handle_request($r);
+            log(debug => "appp -> start -> request handle: ", {args_ui=>$args->{raw}{ui}});
+            my $data = $self->handle_request($r, %{$args->{raw}{ui}});
             my $resp = $self->{view}->render($data);
             $_c->send_response($resp);
         }
@@ -77,7 +68,7 @@ sub start {
 sub init {
     my $self = shift;
     my %args = @_;
-    $self->{model}      //= GPBExim::get_model(delete $args{model_type}, %args);
+    $self->{model}      //= GPBExim::get_model(delete $args{db__model_type}, %args);
     $self->{controller} //= GPBExim::Controller->new();
     $self->{view}       //= GPBExim::View->new();
 
@@ -95,6 +86,7 @@ sub handle_request {
     my ($method, $path, $content) = ($r->method, $r->uri->path, $r->content);
 
     log(debug => "Webserver [$method] $path");
+    log(debug => "handle_request: ", {args=>\%args});
     if ($method eq 'GET' && $path eq "/") {
         $return = $self->{controller}->root($r, $self->{model}, %args);
     } elsif ($method eq 'POST' && $path eq "/search") {

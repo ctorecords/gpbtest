@@ -58,6 +58,33 @@ sub get {
     return $CONFIG;
 }
 
+# получаем аргументы и микшируем их с дефолтными значениями из конфига
+sub apply_args {
+    my $pkg = shift;
+    my $cfg = GPBExim::Config->get();
+    my $divs = shift;
+
+    my %_args;
+    for my $div ( grep { defined $cfg->{$_} } @$divs) {
+        for my $key (keys %{$cfg->{$div}}) {
+            $_args{$div.'__'.$key}=$cfg->{$div}{$key} // '';
+        }
+    };
+    my %args = (%_args, @_);
+
+    my ($xargs, $raw_args);
+    for my $div ( @$divs ) {
+        for my $_key (grep {/^$div\_\_/} keys %args) {
+            my $key = $_key; $key =~ s/^$div\_\_//g;
+            $raw_args->{$div}{$_key} =
+            $xargs->{$div}{$key} = delete $args{$_key};
+            $raw_args->{$div}{$_key} = $xargs->{$div}{$key}
+        }
+    }
+
+    return {x=>$xargs, raw=>$raw_args};
+}
+
 sub logger {
     return $LOGGER //= Log::Any->get_logger();
 }

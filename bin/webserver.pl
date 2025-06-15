@@ -25,4 +25,4 @@ die "Не задан хост: ни в конфиге, ни в параметр�
 die "Не задан порт: ни в конфиге, ни в параметре -p" unless $port;
 
 GPBExim::App->new()
-    ->start(server_port => $port, server_host => $host);
+    ->start(ui__server_port => $port, ui__server_host => $host);

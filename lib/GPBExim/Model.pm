@@ -9,43 +9,24 @@ use JSON::XS;
 use Scalar::Util::Numeric qw/isint/;
 use GPBExim;
 use GPBExim::Config;
+use GPBExim::Log;
 use GPBExim::Model::Xapian;
 
 sub new {
     my $pkg = shift;
     my $model_type = shift;
     my $cfg = GPBExim::Config->get();
+    my $args = GPBExim::Config->apply_args([qw/db xapian ui/], @_);
 
-    my %_args;
-    for my $div (grep {/^(db|xapian)/} keys %$cfg) {
-        for my $key (keys %{$cfg->{$div}}) {
-            $_args{$div.'__'.$key}=$cfg->{$div}{$key} // '';
-        }
-    };
-    my %args = ( %_args, @_ ); %_args=();
-    my %args_db;
-    for my $_key (grep {/^db__/} keys %args) {
-        my $key = $_key; $key =~ s/^db__//g;
-        $args_db{$key}=delete $args{$_key};
-    }
-    my %args_xapian;
-    for my $_key (grep {/^xapian__/} keys %args) {
-        my $key = $_key; $key =~ s/^xapian__//g;
-        $args_xapian{$key}=delete $args{$_key};
-    }
-
-    if (%args_xapian or $model_type eq 'Xapian') {
-        GPBExim::Model::Xapian->new('Xapian', %args_xapian, $model_type eq 'Xapian' ? %args : ());
-    }
+    GPBExim::Model::Xapian->new('Xapian', %{$args->{raw}{xapian}});
 
     my $self = bless {
         cfg => $cfg,
         model_type=>$model_type,
-        %args,
-        %args_db,
+        %{$args->{x}{db}},
     }, $pkg;
 
-    $self->init(%args);
+    $self->init(%{$args->{raw}{xapian}});
     $self->setup_dbh();
 
     return $self;
@@ -152,11 +133,13 @@ sub get_rows_on_address_id {
     return [] if !@$ids;
 
     my %args     = @_;
+    log(debug => "get_rows_on_address_id: ", {ids=>$ids, incoming_limit=>$args{limit}, cfg_limit => $args{ui__max_results}});
 
     die "Limit is must by int" if defined ($args{limit}) && !isint($args{limit});
     my $limit = delete $args{limit};
-    $limit //= $self->{cfg}{ui}{max_results} + 1;
-    $limit =  $self->{cfg}{ui}{max_results} + 1 if $limit > $self->{cfg}{ui}{max_results} + 1;
+    $limit //= $args{ui__max_results} + 1;
+    $limit =  $args{ui__max_results} + 1 if $limit > $args{ui__max_results} + 1;
+    log(debug => {limit=>$limit});
 
     my $return = $self->{dbh}->selectall_arrayref(
             join (' union ',
@@ -239,20 +222,22 @@ sub search_rows_by_substr {
     my $self   = shift;
     my $substr = shift;
     my %args   = @_;
+    my $args = GPBExim::Config->apply_args([qw/xapian ui/], @_);
 
     my $ids = $self->search_id_by_substr($substr, %args);
     return if (!@$ids);
 
+    log(debug => "search_rows_by_substr: ", $args->{x}{ui}{max_results});
     my $return_data = $self->get_rows_on_address_id([qw/log message/], $ids,
-        limit => $self->{cfg}{ui}{max_results}+1,
-        %args
+        limit => $args->{x}{ui}{max_results}+1,
+        %{ $args->{raw}{ui} }
     );
     return if !@$return_data;
 
     # если строчек больше лимита, то последний 101й элемент пометим
-    if (defined $return_data->[$self->{cfg}{ui}{max_results}]) {
-        $return_data->[$self->{cfg}{ui}{max_results}-1]{continue} = 1;
-        splice @$return_data, $self->{cfg}{ui}{max_results}, 1;
+    if (defined $return_data->[$args->{x}{ui}{max_results}]) {
+        $return_data->[$args->{x}{ui}{max_results}-1]{continue} = 1;
+        splice @$return_data, $args->{x}{ui}{max_results}, 1;
     };
 
     return $return_data;

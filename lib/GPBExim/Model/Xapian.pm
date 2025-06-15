@@ -1,7 +1,10 @@
 package GPBExim::Model::Xapian;
 use lib::abs '../../../lib';
 use uni::perl ':dumper';
+
 use GPBExim::Config;
+use GPBExim::Log;
+
 use JSON::XS;
 use Search::Xapian;
 use File::Path qw(remove_tree);
@@ -10,11 +13,12 @@ our $INSTANCE;
 
 sub new {
     my ($class, $model_type, %args) = @_;
-    if ($args{force}) {
+    if ($args{xapian__force}) {
+        $INSTANCE && $INSTANCE->destroy();
         undef $INSTANCE;
         delete $args{force};
     }
-    return $INSTANCE ||= $class->_new($model_type, %args);
+    return $INSTANCE //= $class->_new($model_type, %args);
 }
 
 sub reset { $INSTANCE->destroy(); undef $INSTANCE }
@@ -23,14 +27,16 @@ sub is_initialized { return defined $INSTANCE }
 sub _new {
     my $pkg = shift;
     my $model_type = shift;
-    my %args = @_;
+    my $cfg = GPBExim::Config->get();
+    my $args = GPBExim::Config->apply_args([qw/xapian/], @_);
 
     my $self = bless {
-        %args,
-        model_type => $model_type,
+        %{$args->{x}{xapian}},
+        cfg => $cfg,
     }, $pkg;
+    log(debug => "Xapian model: ", $args->{x}{xapian});
 
-    $self->{cfg} = GPBExim::Config->get();
+    $self->{cfg} = $cfg;
     $self->init();
     $INSTANCE = $self;
 

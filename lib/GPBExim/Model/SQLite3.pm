@@ -10,7 +10,7 @@ sub init {
     $self->SUPER::init(@_);
 
     $self->{path} ||= ':memory:';
-    $self->{schemafile} ||= $self->{cfg}{db}{schema_path} // '';
+    $self->{schema_path} ||= $self->{cfg}{db}{schema_path} // '';
 }
 
 sub setup_dbh {

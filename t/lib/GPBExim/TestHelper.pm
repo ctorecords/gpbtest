@@ -116,24 +116,23 @@ sub test_search_in_parsed_logfile {
     my $fname    = shift;
     my $search_expected = shift;
     my $cfg = GPBExim::Config->get();
-    my %args = (
-        model_type => $cfg->{db}{model_type},
-        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
-        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
-        db__schema_path             => $cfg->{db}{schema_path},
-        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
-        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
-        xapian__path                => $cfg->{xapian}{path},
-        xapian__min                 => $cfg->{xapian}{min},
-        xapian__max_results         => $cfg->{xapian}{max_results},
+    my $args = GPBExim::Config->apply_args(
+        [qw/db xapian ui/],
         @_
     );
 
-    (my $app = GPBExim::App->new()->init(%args))->{model}->setup_schema;
-    $fname and GPBExim::Parser->new()->parse_logfile($fname => $app->{model});
+    (my $app = GPBExim::App->new()
+        ->init(
+            xapian__force => 1,
+            map { %{$args->{raw}{$_}} }  qw/db xapian ui/)
+        )
+        ->{model}->setup_schema;
+
+    $fname and GPBExim::Parser->new()
+        ->parse_logfile($fname => $app->{model});
 
     for my $s (keys %$search_expected) {
-        my $got = $app->handle_request(cq($s), xdebug=>1);
+        my $got = $app->handle_request(cq($s), %{ $args->{raw}{ui} });
         is_deeply($got, $search_expected->{$s}, encode('UTF-8', "$title: $s"));
     }
 }
@@ -167,23 +166,22 @@ sub test_live_search_in_parsed_logfile {
     my $fname    = shift;
     my $search_expected = shift;
     my $cfg = GPBExim::Config->get();
-    my %args = (
-        model_type => $cfg->{db}{model_type},
-        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
-        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
-        db__schema_path             => $cfg->{db}{schema_path},
-        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
-        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
-        xapian__path                => $cfg->{xapian}{path},
-        xapian__min                 => $cfg->{xapian}{min},
-        xapian__max_results         => $cfg->{xapian}{max_results},
+    my $args = GPBExim::Config->apply_args(
+        [qw/db xapian ui/],
+        ui__server_port => get_free_port(),
         @_
     );
 
-    (my $app = GPBExim::App->new()->init(%args))->{model}->setup_schema;
+    (my $app = GPBExim::App->new()
+        ->init(
+            xapian__force => 1,
+            map { %{$args->{raw}{$_}} }  qw/db xapian/)
+        )
+        ->{model}->setup_schema;
+
     $fname and GPBExim::Parser->new()->parse_logfile($fname => $app->{model});
-    my $port = get_free_port();
-    my $host = $cfg->{ui}{server_host};
+    my $port = $args->{x}{ui}{server_port};
+    my $host = $args->{x}{ui}{server_host};
     my $pid;
     $pid = fork();
     if (!defined $pid) {
@@ -191,11 +189,7 @@ sub test_live_search_in_parsed_logfile {
     }
     elsif($pid == 0) {
         $SIG{INT} = sub { exit(0) };
-        $app->start(
-            server_port => $port,
-            server_host => $host,
-            silent => 1,
-        );
+        $app->start( %{ $args->{raw}{ui} } );
         exit 0;
     }
     sleep 0.3 until server_is_up($host, $port);
@@ -215,7 +209,7 @@ sub test_live_search_in_parsed_logfile {
             is_deeply(decode_json($res->decoded_content), $search_expected->{$s}{$handle}, encode('UTF-8', "$title (live server - $handle): $s"));
 
             # тест модели
-            is_deeply($app->handle_request(cq($s, "/$handle"), xdebug=>1), $search_expected->{$s}{$handle}, encode('UTF-8', "$title (model - $handle): $s"));
+            is_deeply($app->handle_request(cq($s, "/$handle"), %{ $args->{raw}{ui} }), $search_expected->{$s}{$handle}, encode('UTF-8', "$title (model - $handle): $s"));
         }
     }
 
@@ -229,19 +223,14 @@ sub test_search {
     my $search = shift;
     my $expected   = shift;
     my $cfg = GPBExim::Config->get();
-    my %args = (
-        model_type => $cfg->{db}{model_type},
-        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
-        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
-        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
-        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
-        xapian__path                => $cfg->{xapian}{path},
-        xapian__min                 => $cfg->{xapian}{min},
-        xapian__max_results         => $cfg->{xapian}{max_results},
-        @_
-    );
+    my $args = GPBExim::Config->apply_args([qw/db xapian ui/], @_);
 
-    (my $app = GPBExim::App->new()->init(%args))->{model}->setup_schema;
+    (my $app = GPBExim::App->new()
+        ->init(
+            xapian__force => 1,
+            map { %{$args->{raw}{$_}} }  qw/db xapian/)
+        )
+        ->{model}->setup_schema;
     GPBExim::Parser->new()->parse_chunk($app->{model} => $chunk, xdebug => 1);
 
     my $got = $app->handle_request(cq($search), xdebug => 1);
@@ -258,23 +247,22 @@ sub test_live_search {
     my $search = shift;
     my $expected   = shift;
     my $cfg = GPBExim::Config->get();
-    my %args = (
-        model_type => $cfg->{db}{model_type},
-        db__clear_db_on_init        => $cfg->{db}{clear_db_on_init},
-        db__clear_db_on_destroy     => $cfg->{db}{clear_db_on_destroy},
-        xapian__clear_db_on_destroy => $cfg->{xapian}{clear_db_on_destroy},
-        xapian__clear_db_on_init    => $cfg->{xapian}{clear_db_on_init},
-        xapian__path                => $cfg->{xapian}{path},
-        xapian__min                 => $cfg->{xapian}{min},
-        xapian__max_results         => $cfg->{xapian}{max_results},
+    my $args = GPBExim::Config->apply_args(
+        [qw/db xapian ui/],
+        ui__server_port => get_free_port(),
         @_
     );
 
-    (my $app = GPBExim::App->new()->init(%args))->{model}->setup_schema;
+    (my $app = GPBExim::App->new()
+        ->init(
+            xapian__force => 1,
+            map { %{$args->{raw}{$_}} }  qw/db xapian/)
+        )
+        ->{model}->setup_schema;
     GPBExim::Parser->new()->parse_chunk($app->{model} => $chunk, xdebug => 1);
 
-    my $port = get_free_port();
-    my $host = $cfg->{ui}{server_host};
+    my $port = $args->{x}{ui}{server_port};
+    my $host = $args->{x}{ui}{server_host};
     my $pid;
     $pid = fork();
     if (!defined $pid) {
@@ -282,11 +270,7 @@ sub test_live_search {
     }
     elsif($pid == 0) {
         $SIG{INT} = sub { exit(0) };
-        $app->start(
-            server_port => $port,
-            server_host => $host,
-            silent => 1,
-        );
+        $app->start( %{ $args->{raw}{ui} } );
         log(debug => "Start webserver http://$host:$port/");
         exit 0;
     }

@@ -303,7 +303,7 @@
           notice.className = 'notice-row';
           const td = document.createElement('td');
           td.colSpan = 2;
-          td.textContent = 'Количество найденных строк превышает лимит';
+          td.textContent = 'Количество найденных строк превышает лимит ([%- data.max_results -%])';
           notice.appendChild(td);
           table.appendChild(notice);
         }

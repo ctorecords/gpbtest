@@ -22,7 +22,7 @@ test_parse_line ( 'Проверка парсера регэкспом строк
         int_id   => '1RookS-000Pg8-VO',
         flag     => '**',
         email    => 'fwxvparobkymnbyemevz@london.com',
-        other    => q{retry timeout exceeded},
+        other    => 'retry timeout exceeded',
     }
 );
 
@@ -33,7 +33,7 @@ test_parse_line ( 'Проверка парсера регэкспом строк
         int_id   => '1RwtJa-000AFJ-3B',
         flag     => '<=',
         email    => undef,
-        other    => q{R=1RookS-000Pg8-VO U=mailnull P=local S=3958},
+        other    => 'R=1RookS-000Pg8-VO U=mailnull P=local S=3958',
     }
 );
 
@@ -44,7 +44,7 @@ test_parse_line ( 'Проверка парсера регэкспом строк
         int_id   => '1RookS-000Pg8-VO',
         flag     => undef,
         email    => undef,
-        other    => q{Completed},
+        other    => 'Completed',
     }
 );
 
@@ -55,7 +55,7 @@ test_parse_line ( 'Проверка парсера регэкспом строк
         int_id   => '1RwtQA-000Mti-P5',
         flag     => '==',
         email    => 'ijcxzetfsijoedyg@hsrail.ru',
-        other    => q{R=dnslookup T=remote_smtp defer (-1): domain matches queue_smtp_domains, or -odqs set},
+        other    => 'R=dnslookup T=remote_smtp defer (-1): domain matches queue_smtp_domains, or -odqs set',
     }
 );
 
