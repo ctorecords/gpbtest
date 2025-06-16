@@ -21,7 +21,7 @@ ui:
   silent: 1
   max_results: 6
   server_port: 8080
-  server_host: "localhost"
+  server_host: "0.0.0.0"
   template_path: 'templates/search.html'
   
 parser:
