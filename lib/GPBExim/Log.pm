@@ -6,6 +6,7 @@ use uni::perl ':dumper';
 use lib::abs '../../lib';
 use GPBExim::Config;
 use Encode;
+use JSON::XS;
 
 use Exporter 'import';
 our @EXPORT = qw(log);
