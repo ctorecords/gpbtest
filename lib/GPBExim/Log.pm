@@ -1,7 +1,5 @@
 package GPBExim::Log;
 
-use strict;
-use warnings;
 use uni::perl ':dumper';
 use lib::abs '../../lib';
 use GPBExim::Config;
