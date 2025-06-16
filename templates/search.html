@@ -167,8 +167,19 @@
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[c]);
+    }
+
     function highlight(text, query) {
       const regex = new RegExp(escapeRegExp(query), 'gi');
+      text = escapeHtml(text);
       return text.replace(regex, m => `<mark>${m}</mark>`);
     }
 
@@ -295,19 +306,20 @@
               const emailMatch = row[key].includes(`<${email}>`);
               const highlightedEmail = email.toLowerCase() !== s.toLowerCase()
                 ? highlight(email, s)
-                : `<mark>${email}</mark>`;
+                : `<mark>${escapeHtml(email)}</mark>`;
+              const emailAttr = email.replace(/'/g, "\\'");
               let emailDisplay = (email.toLowerCase() !== s.toLowerCase())
-                ? `<a href="#" style="text-decoration: underline dotted;" onclick="searchEmail('${email}'); return false;">${highlightedEmail}</a>`
+                ? `<a href="#" style="text-decoration: underline dotted;" onclick="searchEmail('${emailAttr}'); return false;">${highlightedEmail}</a>`
                 : highlightedEmail;
               if (emailMatch) emailDisplay = `&lt;${emailDisplay}&gt;`;
               td.innerHTML = `
-                <div class="meta">${row.t || ''}</div>
-                ${int_id} ${flag || ''} ${emailDisplay}${other}
+                <div class="meta">${escapeHtml(row.t || '')}</div>
+                ${escapeHtml(int_id)} ${flag ? escapeHtml(flag) : ''} ${emailDisplay}${escapeHtml(other)}
               `;
 
             } else {
               td.innerHTML = `
-                <div class="meta">${row.t || ''}</div>
+                <div class="meta">${escapeHtml(row.t || '')}</div>
                 ${highlight(row[key], s)}
               `;
 
