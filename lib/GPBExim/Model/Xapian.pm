@@ -117,7 +117,7 @@ sub search_by_email_substring {
         limit => $self->{xapian_max_search_result},
         @_
     );
-    croak "substring is required" unless defined $substring;
+    return {} if ! $substring;
 
     my $query   = Search::Xapian::Query->new("N$substring");
     my $enquire = Search::Xapian::Enquire->new($self->{xapian_db});
@@ -138,7 +138,7 @@ sub search_by_email_substring {
 sub search_id_by_email_substring {
     my $self      = shift;
     my $substring = shift;
-    croak "substring is required" unless defined $substring;
+    return [] if ! $substring;
     my %args      = (
         limit => $self->{max_results},
         @_
@@ -151,7 +151,7 @@ sub search_id_by_email_substring {
 sub search_email_by_email_substring {
     my $self      = shift;
     my $substring = shift;
-    croak "substring is required" unless defined $substring;
+    return [] if ! $substring;
     my %args      = (
         limit => $self->{max_results},
         @_

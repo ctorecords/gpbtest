@@ -5,7 +5,6 @@ use Config::Any;
 use File::Spec;
 use Cwd qw(abs_path);
 use File::Basename qw(dirname);
-use Carp;
 use Log::Log4perl;
 use Log::Any;
 use Log::Any::Adapter;
@@ -26,7 +25,7 @@ sub get {
         last if $CONFIG;
     }
 
-    croak "Не удалось загрузить конфигурацию из $config_path" unless $CONFIG;
+    die "Не удалось загрузить конфигурацию из $config_path" if !$CONFIG;
 
     _resolve_paths($CONFIG, $config_dir);
 
@@ -119,7 +118,7 @@ sub _find_config_file {
         $start_dir = $parent;
     }
 
-    croak "Конфигурационный файл не найден (искали вверх от точки запуска среди: @filenames)";
+    die "Конфигурационный файл не найден (искали вверх от точки запуска среди: @filenames)";
 }
 
 1;
